@@ -15,4 +15,10 @@ fi
 # Install homebrew packages
 brew install grc coreutils spark
 
+# Install homebrew cask for ui packages
+brew install caskroom/cask/brew-cask
+
+# Tap cask versions so we have access to newer packages
+brew tap caskroom/versions
+
 exit 0
