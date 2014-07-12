@@ -1,4 +1,4 @@
-# holman does dotfiles
+# my dotfiles
 
 ## dotfiles
 
@@ -79,6 +79,8 @@ If you're brand-new to the project and run into any blockers, please
 and I'd love to get it fixed for you!
 
 ## thanks
+
+I forked [Zach Holman](http://github.com/holman)s very nice dotfiles and made some changed for myself. Most of it is very much intact though.
 
 I forked [Ryan Bates](http://github.com/ryanb)' excellent
 [dotfiles](http://github.com/ryanb/dotfiles) for a couple years before the
