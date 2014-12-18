@@ -30,6 +30,7 @@ cask_install "virtualbox"
 cask_install "evernote"
 cask_install "iterm2"
 cask_install "skype"
+cask_install "dropbox"
 
 # Media
 cask_install "vlc"
