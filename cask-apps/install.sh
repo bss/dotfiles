@@ -31,6 +31,7 @@ cask_install "evernote"
 cask_install "iterm2"
 cask_install "skype"
 cask_install "dropbox"
+cask_install "hipchat"
 
 # Media
 cask_install "vlc"
