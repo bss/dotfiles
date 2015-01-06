@@ -184,6 +184,9 @@ set autoindent
 set smartindent  
 set nowrap
 
+" Allow backspace over any character in insert mode
+set backspace=indent,eol,start 
+
 "  Setup fonts/colors
 set guifont=DejaVu\ Sans\ Mono\ for\ Powerline:h14
 let g:Powerline_symbols = 'fancy'
