@@ -22,3 +22,6 @@
 [submodule "vim/vim.symlink/bundle/vitality.vim"]
 	path = vim/vim.symlink/bundle/vitality.vim
 	url = git@github.com:sjl/vitality.vim.git
+[submodule "vim/vim.symlink/bundle/syntastic"]
+	path = vim/vim.symlink/bundle/syntastic
+	url = git@github.com:scrooloose/syntastic.git
