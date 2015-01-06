@@ -1,6 +1,9 @@
 execute pathogen#infect()
 
 syntax on
+set background=dark
+colorscheme solarized
+highlight clear SignColumn
 
 " Wrap gitcommit file types at the appropriate length
 filetype indent plugin on
@@ -23,7 +26,7 @@ map <C-k><C-b> :NERDTreeToggle<CR>
 " lightline
 " ------------------------------
 let g:lightline = {
-      \ 'colorscheme': 'wombat',
+      \ 'colorscheme': 'solarized',
       \ 'active': {
       \   'left': [ [ 'mode', 'paste' ], [ 'fugitive', 'filename' ], ['ctrlpmark'] ],
       \   'right': [ [ 'syntastic', 'lineinfo' ], ['percent'], [ 'fileformat', 'fileencoding', 'filetype' ] ]
