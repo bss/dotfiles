@@ -13,7 +13,7 @@ then
 fi
 
 # Install homebrew packages
-brew install grc coreutils spark
+brew install grc coreutils spark gcc
 
 # Install homebrew cask for ui packages
 brew install caskroom/cask/brew-cask
