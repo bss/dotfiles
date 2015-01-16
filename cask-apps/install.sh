@@ -32,6 +32,7 @@ cask_install "iterm2"
 cask_install "skype"
 cask_install "dropbox"
 cask_install "hipchat"
+cask_install "slack"
 
 # Media
 cask_install "vlc"
