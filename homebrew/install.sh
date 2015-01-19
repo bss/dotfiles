@@ -12,13 +12,16 @@ then
   ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 fi
 
-# Install homebrew packages
-brew install grc coreutils spark gcc
+# Install core homebrew packages
+brew install grc coreutils spark gcc git
 
 # Install homebrew cask for ui packages
 brew install caskroom/cask/brew-cask
 
 # Tap cask versions so we have access to newer packages
 brew tap caskroom/versions
+
+# User-defined packages
+brew install phantomjs
 
 exit 0
