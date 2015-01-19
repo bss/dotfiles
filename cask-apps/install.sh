@@ -33,6 +33,7 @@ cask_install "skype"
 cask_install "dropbox"
 cask_install "hipchat"
 cask_install "slack"
+cask_install "google-drive"
 
 # Media
 cask_install "vlc"
