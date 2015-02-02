@@ -45,5 +45,11 @@ unset config_files
 bindkey -e
 bindkey '^[[1;9C' forward-word
 bindkey '^[[1;9D' backward-word
+bindkey '\e[3~' delete-char
+bindkey '\e[H' beginning-of-line
+bindkey '\e[F' end-of-line
+
+# Reset tty settings after each process
+ttyctl -f
 
 source $HOME/.rvm/scripts/rvm
