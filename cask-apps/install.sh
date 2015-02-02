@@ -34,6 +34,7 @@ cask_install "dropbox"
 cask_install "hipchat"
 cask_install "slack"
 cask_install "google-drive"
+cask_install "flux"
 
 # Media
 cask_install "vlc"
