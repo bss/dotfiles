@@ -25,6 +25,7 @@ cask_install "sublime-text3"
 cask_install "sourcetree"
 cask_install "vagrant"
 cask_install "virtualbox"
+cask_install "chefdk"
 
 # Productivity & tools
 cask_install "evernote"
