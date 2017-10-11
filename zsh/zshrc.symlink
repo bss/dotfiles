@@ -2,7 +2,7 @@
 export ZSH=$HOME/.dotfiles
 
 # your project folder that we can `c [tab]` to
-export PROJECTS=~/Code
+export PROJECTS=~/Documents/dev
 
 export SHELL=/bin/zsh
 
@@ -43,13 +43,21 @@ unset config_files
 
 # Custom stuff
 bindkey -e
-bindkey '^[[1;9C' forward-word
-bindkey '^[[1;9D' backward-word
+bindkey '^[f' forward-word
+bindkey '^[b' backward-word
 bindkey '\e[3~' delete-char
-bindkey '\e[H' beginning-of-line
-bindkey '\e[F' end-of-line
+#bindkey '\e H' beginning-of-line
+#bindkey '\e F' end-of-line
 
 # Reset tty settings after each process
 ttyctl -f
 
-source $HOME/.rvm/scripts/rvm
+source /usr/local/opt/chruby/share/chruby/chruby.sh
+source /usr/local/opt/chruby/share/chruby/auto.sh
+
+export NVM_DIR="$HOME/.nvm"
+#. "$(brew --prefix nvm)/nvm.sh"
+. "/usr/local/opt/nvm/nvm.sh"
+
+#test -e "${HOME}/.iterm2_shell_integration.zsh" && source "${HOME}/.iterm2_shell_integration.zsh"
+

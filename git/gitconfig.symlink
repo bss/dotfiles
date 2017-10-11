@@ -4,8 +4,8 @@
 [hub]
         protocol = https
 [user]
-        name = Bo Stendal Sorensen
-        email = bo@stendal-sorensen.net
+	name = Bo Stendal Sorensen
+	email = bo@stendal-sorensen.net
 [credential]
         helper = osxkeychain
 [alias]

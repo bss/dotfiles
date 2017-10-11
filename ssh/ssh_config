@@ -1,7 +1,13 @@
+UseRoaming no
+User bo
+
 Host *
+     UseKeychain yes
+     AddKeysToAgent yes
+     IdentityFile ~/.ssh/id_rsa
      Compression yes
      CompressionLevel 7
-     Cipher blowfish
+#     Cipher blowfish
      ServerAliveInterval 600
      ControlMaster auto
      ControlPath ~/.ssh/tmp/ssh-%r@%h:%p
