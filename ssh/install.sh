@@ -13,7 +13,7 @@ set -e
 echo ''
 
 echo 'Creating tmp dir for ssh'
-mkdir "$SSH_DIR/tmp"
+mkdir "$SSH_DIR/tmp" || true
 
 echo 'Linking ssh config'
 ln -s "$DOTFILES_ROOT/ssh/ssh_config" "$SSH_DIR/config"
