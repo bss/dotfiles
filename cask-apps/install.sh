@@ -21,6 +21,7 @@ function cask_install () {
 #cask_install "firefox"
 
 # Development & editors
+cask_install "atom"
 #cask_install "sublime-text3"
 #cask_install "sourcetree"
 #cask_install "vagrant"

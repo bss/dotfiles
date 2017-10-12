@@ -1,0 +1,56 @@
+"*":
+  "autocomplete-plus": {}
+  "autocomplete-ruby": {}
+  core:
+    customFileTypes:
+      "source.ini": [
+        ".buckconfig"
+        ".hgrc"
+        ".flowconfig"
+      ]
+      "source.json": [
+        ".arcconfig"
+        "BUCK.autodeps"
+      ]
+      "source.python": [
+        "BUCK"
+      ]
+    disabledPackages: [
+      "hashrocket"
+      "metrics"
+      "racer"
+      "react"
+    ]
+    telemetryConsent: "no"
+  editor:
+    fontSize: 13
+    invisibles: {}
+    showIndentGuide: true
+  "fuzzy-finder":
+    useAlternateScoring: true
+  "git-plus": {}
+  "go-plus":
+    panel:
+      currentHeight: "13.615455381784727vh"
+    test:
+      runTestsOnSave: false
+      runTestsWithCoverage: false
+  hashrocket: {}
+  "highlight-selected": {}
+  "language-babel":
+    suppressTranspileOnSaveMessages: true
+  linter: {}
+  "linter-eslint": {}
+  "linter-ui-default":
+    panelHeight: 72
+  "markdown-preview": {}
+  "merge-conflicts": {}
+  nuclide:
+    installRecommendedPackages: true
+    "nuclide-working-sets": {}
+  react: {}
+  "rubocop-auto-correct": {}
+  "tree-view":
+    hideVcsIgnoredFiles: true
+  welcome:
+    showOnStartup: false

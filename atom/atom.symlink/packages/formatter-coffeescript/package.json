@@ -1,0 +1,129 @@
+{
+  "name": "formatter-coffeescript",
+  "main": "./lib/formatter-coffeescript",
+  "version": "0.1.1",
+  "description": "Formatter for CoffeeScript",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/atom-community/formatter-coffeescript"
+  },
+  "license": "MIT",
+  "engines": {
+    "atom": ">=0.183.0 <2.0.0"
+  },
+  "dependencies": {
+    "coffee-formatter": "0.1.1"
+  },
+  "providedServices": {
+    "formatter": {
+      "versions": {
+        "1.0.0": "provideFormatter"
+      }
+    }
+  },
+  "readme": "## Formatter - Coffeescript\n\n* `apm install formatter`\n* And then install this. Use the formatter shortcuts to format your CoffeeScript.\n",
+  "readmeFilename": "README.md",
+  "bugs": {
+    "url": "https://github.com/atom-community/formatter-coffeescript/issues"
+  },
+  "homepage": "https://github.com/atom-community/formatter-coffeescript",
+  "_id": "formatter-coffeescript@0.1.1",
+  "_shasum": "7b0c05784628f45a5e05f0fde2a2ae99a1f6e4b8",
+  "_resolved": "file:../d-11569-90260-1f2fr7j/package.tgz",
+  "_from": "../d-11569-90260-1f2fr7j/package.tgz",
+  "_atomModuleCache": {
+    "version": 1,
+    "dependencies": [
+      {
+        "name": "coffee-formatter",
+        "version": "0.1.1",
+        "path": "node_modules/coffee-formatter/lib/formatter.js"
+      },
+      {
+        "name": "lazy",
+        "version": "1.0.11",
+        "path": "node_modules/coffee-formatter/node_modules/lazy/lazy.js"
+      },
+      {
+        "name": "optimist",
+        "version": "0.5.2",
+        "path": "node_modules/coffee-formatter/node_modules/optimist/index.js"
+      },
+      {
+        "name": "wordwrap",
+        "version": "0.0.3",
+        "path": "node_modules/coffee-formatter/node_modules/optimist/node_modules/wordwrap/index.js"
+      }
+    ],
+    "extensions": {
+      ".coffee": [
+        "lib/formatter-coffeescript-view.coffee",
+        "lib/formatter-coffeescript.coffee"
+      ],
+      ".js": [
+        "node_modules/coffee-formatter/lib/formatter.js",
+        "node_modules/coffee-formatter/node_modules/lazy/lazy.js",
+        "node_modules/coffee-formatter/node_modules/optimist/example/bool.js",
+        "node_modules/coffee-formatter/node_modules/optimist/example/boolean_double.js",
+        "node_modules/coffee-formatter/node_modules/optimist/example/boolean_single.js",
+        "node_modules/coffee-formatter/node_modules/optimist/example/default_hash.js",
+        "node_modules/coffee-formatter/node_modules/optimist/example/default_singles.js",
+        "node_modules/coffee-formatter/node_modules/optimist/example/divide.js",
+        "node_modules/coffee-formatter/node_modules/optimist/example/line_count.js",
+        "node_modules/coffee-formatter/node_modules/optimist/example/line_count_options.js",
+        "node_modules/coffee-formatter/node_modules/optimist/example/line_count_wrap.js",
+        "node_modules/coffee-formatter/node_modules/optimist/example/nonopt.js",
+        "node_modules/coffee-formatter/node_modules/optimist/example/reflect.js",
+        "node_modules/coffee-formatter/node_modules/optimist/example/short.js",
+        "node_modules/coffee-formatter/node_modules/optimist/example/string.js",
+        "node_modules/coffee-formatter/node_modules/optimist/example/usage-options.js",
+        "node_modules/coffee-formatter/node_modules/optimist/example/xup.js",
+        "node_modules/coffee-formatter/node_modules/optimist/index.js",
+        "node_modules/coffee-formatter/node_modules/optimist/node_modules/wordwrap/example/center.js",
+        "node_modules/coffee-formatter/node_modules/optimist/node_modules/wordwrap/example/meat.js",
+        "node_modules/coffee-formatter/node_modules/optimist/node_modules/wordwrap/index.js"
+      ],
+      ".json": [
+        "node_modules/coffee-formatter/node_modules/lazy/package.json",
+        "node_modules/coffee-formatter/node_modules/optimist/node_modules/wordwrap/package.json",
+        "node_modules/coffee-formatter/node_modules/optimist/package.json",
+        "node_modules/coffee-formatter/package.json",
+        "package.json"
+      ]
+    },
+    "folders": [
+      {
+        "paths": [
+          "lib",
+          "",
+          "spec"
+        ],
+        "dependencies": {
+          "coffee-formatter": "0.1.1"
+        }
+      },
+      {
+        "paths": [
+          "node_modules/coffee-formatter/lib",
+          "node_modules/coffee-formatter",
+          "node_modules/coffee-formatter/test"
+        ],
+        "dependencies": {
+          "lazy": "~1.0.11",
+          "optimist": "~0.5.0"
+        }
+      },
+      {
+        "paths": [
+          "node_modules/coffee-formatter/node_modules/optimist/example",
+          "node_modules/coffee-formatter/node_modules/optimist",
+          "node_modules/coffee-formatter/node_modules/optimist/test/_",
+          "node_modules/coffee-formatter/node_modules/optimist/test"
+        ],
+        "dependencies": {
+          "wordwrap": "~0.0.2"
+        }
+      }
+    ]
+  }
+}
