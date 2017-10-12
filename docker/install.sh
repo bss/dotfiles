@@ -1,6 +1,4 @@
 #!/bin/sh
 
-brew install boot2docker
-
-boot2docker init
+brew install caskroom/cask/docker
 

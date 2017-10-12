@@ -16,29 +16,29 @@ function cask_install () {
 }
 
 # Browsers
-cask_install "google-chrome"
-cask_install "google-chrome-canary"
-cask_install "firefox"
+#cask_install "google-chrome"
+#cask_install "google-chrome-canary"
+#cask_install "firefox"
 
 # Development & editors
-cask_install "sublime-text3"
-cask_install "sourcetree"
-cask_install "vagrant"
-cask_install "virtualbox"
-cask_install "chefdk"
+#cask_install "sublime-text3"
+#cask_install "sourcetree"
+#cask_install "vagrant"
+#cask_install "virtualbox"
+#cask_install "chefdk"
 
 # Productivity & tools
-cask_install "evernote"
+#cask_install "evernote"
 cask_install "iterm2"
-cask_install "skype"
-cask_install "dropbox"
-cask_install "hipchat"
-cask_install "slack"
-cask_install "google-drive"
+#cask_install "skype"
+#cask_install "dropbox"
+#cask_install "hipchat"
+#cask_install "slack"
+#cask_install "google-drive"
 cask_install "flux"
 
 # Media
-cask_install "vlc"
+#cask_install "vlc"
 
 exit 0
 

@@ -1,1 +1,0 @@
-/Users/bo/Applications/google-cloud-sdk/completion.zsh.inc
