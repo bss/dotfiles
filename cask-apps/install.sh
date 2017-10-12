@@ -37,6 +37,8 @@ cask_install "iterm2"
 #cask_install "google-drive"
 cask_install "flux"
 
+cask_install "spotify"
+
 # Media
 #cask_install "vlc"
 
