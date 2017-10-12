@@ -134,10 +134,22 @@ install_dotfiles () {
     dst="$HOME/.$(basename "${src%.*}")"
     link_file "$src" "$dst"
   done
+  
+  for src in $(find "$DOTFILES_ROOT" -maxdepth 2 -name '*.preference')
+  do
+    dst="$HOME/Library/Preferences/$(basename "${src%.*}")"
+    link_file "$src" "$dst"
+  done
+}
+
+setup_git_submodules() {
+  info 'updating git submodules to latest'
+  git submodule update --init --recursive
 }
 
 setup_gitconfig
 install_dotfiles
+setup_git_submodules
 
 # If we're on a Mac, let's install and setup homebrew.
 if [ "$(uname -s)" == "Darwin" ]
