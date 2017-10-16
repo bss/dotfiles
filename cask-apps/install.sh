@@ -39,6 +39,7 @@ cask_install "iterm2"
 cask_install "flux"
 
 cask_install "spotify"
+cask_install "karabiner-elements"
 
 # Media
 #cask_install "vlc"
