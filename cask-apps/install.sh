@@ -41,6 +41,8 @@ cask_install "flux"
 cask_install "spotify"
 cask_install "karabiner-elements"
 
+cask_install "sequel-pro"
+
 # Media
 #cask_install "vlc"
 
