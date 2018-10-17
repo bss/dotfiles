@@ -1,43 +1,23 @@
-'use babel'
+// @flow
 
-import {CompositeDisposable} from 'atom'
+import type {GoConfig} from './config/service'
 
 class ToolChecker {
-  constructor (goconfig) {
+  goconfig: GoConfig
+
+  constructor (goconfig: GoConfig) {
     this.goconfig = goconfig
-    this.subscriptions = new CompositeDisposable()
   }
 
-  dispose () {
-    if (this.subscriptions) {
-      this.subscriptions.dispose()
-    }
-    this.subscriptions = null
-  }
-
-  checkForTools (tools) {
+  async checkForTools (tools: Array<string>) {
     if (!tools || !tools.length) {
       return
     }
-    let shouldUpdateTools = false
-    const promises = []
-    for (const tool of tools) {
-      if (!tool) {
-        continue
-      }
-      promises.push(this.goconfig.locator.findTool(tool).then((cmd) => {
-        if (!cmd) {
-          shouldUpdateTools = true
-        }
-      }))
-    }
-    Promise.all(promises).then(() => {
-      if (!shouldUpdateTools) {
-        return
-      }
-
+    const promises = tools.filter(tool => !!tool).map(tool => this.goconfig.locator.findTool(tool))
+    const results = await Promise.all(promises)
+    if (results.some(cmd => !cmd)) {
       atom.commands.dispatch(atom.views.getView(atom.workspace), 'golang:update-tools')
-    })
+    }
   }
 }
 

@@ -1,31 +1,55 @@
+// @flow
 'use babel'
 
-import {CompositeDisposable, Disposable} from 'atom'
-import {GetDialog} from './get-dialog'
 import os from 'os'
+import {CompositeDisposable, Disposable} from 'atom'
+import SimpleDialog from './../simple-dialog'
 import {promiseWaterfall} from './../promise'
+import type {GoConfig} from './../config/service'
+import type {ExecResult} from './../config/executor'
+import type {OutputManager} from './../output-manager'
+
+type GetResult = {
+  ...ExecResult,
+  cmd: string,
+  pack: string,
+  args: Array<string>,
+}
+
+export type InteractiveGetOptions = {
+  name: string,
+  packageName: string,
+  packagePath: string,
+  type: 'missing' | 'outdated'
+}
 
 class GetManager {
-  constructor (goconfig, output) {
+  goconfig: GoConfig
+  outputFunc: () => OutputManager
+  packages: Map<string, number>
+  onDidUpdateTools: Set<(any, Array<string>) => void>
+  subscriptions: CompositeDisposable
+
+  constructor (goconfig: GoConfig, outputFunc: Function) {
     this.goconfig = goconfig
-    this.output = output
+    this.outputFunc = outputFunc
     this.packages = new Map()
     this.onDidUpdateTools = new Set()
     this.subscriptions = new CompositeDisposable()
-    this.subscriptions.add(atom.commands.add(atom.views.getView(atom.workspace), 'golang:get-package', () => {
-      this.getPackage()
-    }))
-    this.subscriptions.add(atom.commands.add(atom.views.getView(atom.workspace), 'golang:update-tools', (event) => {
-      this.output.update({
-        output: 'Updating tools...',
-        exitcode: 1
-      })
-      let filter = false
-      if (event && event.detail && Array.isArray(event.detail)) {
-        filter = event.detail
-      }
-      this.updateTools(filter)
-    }))
+    this.subscriptions.add(atom.commands.add(atom.views.getView(atom.workspace),
+      'golang:get-package', () => { this.getPackage() }))
+    this.subscriptions.add(atom.commands.add(atom.views.getView(atom.workspace),
+      'golang:update-tools', (event) => {
+        this.outputFunc().update({
+          output: 'Updating tools...',
+          exitcode: 1
+        })
+        let filter = []
+        if (event && event.detail && Array.isArray(event.detail)) {
+          filter = event.detail
+        }
+        this.updateTools(filter)
+      }))
   }
 
   getSelectedText () {
@@ -41,9 +65,9 @@ class GetManager {
     return selections[0].getText()
   }
 
-  register (importPath, callback) {
+  register (importPath: string, callback: ?Function /* TODO */): Disposable {
     if (!importPath || !importPath.length) {
-      return
+      return new Disposable()
     }
     let count = 1
     if (this.packages && this.packages.has(importPath)) {
@@ -61,7 +85,7 @@ class GetManager {
       if (!this.packages) {
         return
       }
-      const count = this.packages.get(importPath)
+      const count = this.packages.get(importPath) || 0
       if (count === 1) {
         this.packages.delete(importPath)
       } else if (count > 1) {
@@ -73,38 +97,41 @@ class GetManager {
     })
   }
 
-  updateTools (filter) {
+  async updateTools (filter: Array<string>): Promise<any> {
     if (!this.packages || this.packages.size === 0) {
-      return Promise.resolve()
+      return
     }
 
     let packs = [...this.packages.keys()]
     if (filter && Array.isArray(filter) && filter.length > 0) {
       packs = filter
     }
-    return this.performGet(packs).then((outcome) => {
-      if (this.onDidUpdateTools) {
-        for (const cb of this.onDidUpdateTools) {
-          cb(outcome, packs)
-        }
+    const outcome = await this.performGet(packs)
+    if (this.onDidUpdateTools) {
+      for (const cb of this.onDidUpdateTools) {
+        cb(outcome, packs)
       }
-      return outcome
-    })
+    }
+    return outcome
   }
 
   // Shows a dialog which can be used to perform `go get -u {pack}`. Optionally
   // populates the dialog with the selected text from the active editor.
   getPackage () {
     const selectedText = this.getSelectedText()
-    const dialog = new GetDialog(selectedText, (pack) => {
-      this.performGet(pack).then((outcome) => {
-        this.displayResult(pack, outcome)
-      })
+    const dialog = new SimpleDialog({
+      prompt: 'Which Go Package Would You Like To Get?',
+      initialValue: selectedText,
+      onConfirm: (pack) => {
+        this.performGet(pack).then((outcome) => {
+          this.displayResult(pack, outcome)
+        })
+      }
     })
     dialog.attach()
   }
 
-  displayResult (pack, outcome) {
+  displayResult (pack: string, outcome: {result: ExecResult}) {
     const r = outcome.result
     if (r.error) {
       if (r.error.code === 'ENOENT') {
@@ -115,15 +142,17 @@ class GetManager {
       } else {
         console.log(r.error)
         atom.notifications.addError('Error Getting Package', {
-          detail: r.error.message,
+          detail: r.error && r.error.message ? r.error.message : '',
           dismissable: true
         })
       }
       return
     }
+    const stderr = r.stderr instanceof Buffer ? r.stderr.toString() : r.stderr
+    const stdout = r.stdout instanceof Buffer ? r.stdout.toString() : r.stdout
 
-    if (r.exitcode !== 0 || (r.stderr && r.stderr.trim() !== '')) {
-      const message = r.stderr.trim() + '\r\n' + r.stdout.trim()
+    if (r.exitcode !== 0 || (stderr && stderr.trim() !== '')) {
+      const message = stderr.trim() + '\r\n' + stdout.trim()
       atom.notifications.addWarning('Error Getting Package', {
         detail: message.trim(),
         dismissable: true
@@ -135,78 +164,66 @@ class GetManager {
   }
 
   // Runs `go get -u {pack}`.
-  // * `options` (optional) {Object} to pass to the go-config executor.
-  performGet (pack, options = {}) {
-    if (!pack) {
-      return Promise.resolve(false)
-    }
-    if (!Array.isArray(pack) && typeof pack === 'string' && pack.trim() !== '') {
+  async performGet (pack: string | Array<string>): Promise<any> {
+    if (typeof pack === 'string') {
       pack = [pack]
     }
-    if (!Array.isArray(pack) || pack.length < 1) {
-      return Promise.resolve(false)
+
+    const packages: Array<string> = pack.filter(p => p.length > 0)
+    if (pack.length === 0 || !this.goconfig || !this.goconfig.locator) {
+      return false
     }
-
-    if (!this.goconfig || !this.goconfig.locator) {
-      return Promise.resolve(false)
-    }
-    let getOutput = ''
-    return this.goconfig.locator.findTool('go').then((cmd) => {
-      if (!cmd) {
-        atom.notifications.addError('Missing Go Tool', {
-          detail: 'The go tool is required to perform a get. Please ensure you have a go runtime installed: http://golang.org.',
-          dismissable: true
-        })
-        return {success: false}
-      }
-
-      const promises = []
-      const executorOptions = this.goconfig.executor.getOptions('file')
-      executorOptions.timeout = atom.config.get('go-plus.get.timeout')
-      for (const pkg of pack) {
-        const args = ['get', '-u', pkg]
-        promises.push(() => {
-          getOutput += '$ go ' + args.join(' ') + os.EOL
-          this.output.update({
-            output: getOutput
-          })
-          return this.goconfig.executor.exec(cmd, args, executorOptions).then((r) => {
-            r.cmd = cmd
-            r.pack = pkg
-            r.args = args
-
-            if (r.stderr && r.stderr.length) {
-              getOutput += r.stderr + os.EOL
-            }
-            if (r.stdout && r.stdout.length) {
-              getOutput += r.stdout + os.EOL
-            }
-            this.output.update({
-              output: getOutput
-            })
-
-            return r
-          })
-        })
-      }
-
-      return promiseWaterfall(promises).then((results) => {
-        if (!results || results.length < 1) {
-          return {success: false, r: null}
-        }
-
-        let success = true
-        const result = results[0]
-
-        for (const r of results) {
-          if (r.error || r.exitcode !== 0 || (r.stderr && r.stderr.trim() !== '')) {
-            success = false
-          }
-        }
-
-        return {success: success, result: result, results: results}
+    const cmd = await this.goconfig.locator.findTool('go')
+    if (!cmd) {
+      atom.notifications.addError('Missing Go Tool', {
+        detail: 'The go tool is required to perform a get. Please ensure you have a go runtime installed: http://golang.org.',
+        dismissable: true
       })
+      return {success: false}
+    }
+
+    const executorOptions = this.goconfig.executor.getOptions('file')
+    executorOptions.timeout = atom.config.get('go-plus.get.timeout')
+
+    let getOutput = ''
+    const promises: Array<() => Promise<any>> = packages.map((pkg) => async (): Promise<any> => {
+      const args = ['get', '-u', pkg]
+      getOutput += '$ go ' + args.join(' ') + os.EOL
+      this.outputFunc().update({output: getOutput})
+      const r = await this.goconfig.executor.exec(cmd, args, executorOptions)
+      const result: GetResult = {
+        ...r,
+        cmd,
+        pack: pkg,
+        args: args
+      }
+      const stdout = r.stdout instanceof Buffer ? r.stdout.toString() : r.stdout
+      const stderr = r.stderr instanceof Buffer ? r.stderr.toString() : r.stderr
+
+      if (stderr && stderr.length) {
+        getOutput += stderr + os.EOL
+      }
+      if (stdout && stdout.length) {
+        getOutput += stdout + os.EOL
+      }
+      this.outputFunc().update({
+        output: getOutput
+      })
+
+      return result
     })
+
+    const results = await promiseWaterfall(promises)
+    if (!results || results.length < 1) {
+      return {success: false, r: null}
+    }
+    let success = true
+    for (const r of results) {
+      if (r.error || r.exitcode !== 0 || (r.stderr && r.stderr.trim() !== '')) {
+        success = false
+      }
+    }
+    return {success: success, result: results[0], results: results}
   }
 
   // Creates a notification that can be used to run `go get -u {options.packagePath}`.
@@ -215,7 +232,7 @@ class GetManager {
   //   * `packageName` (required) {String} e.g. goimports
   //   * `packagePath` (required) {String} e.g. golang.org/x/tools/cmd/goimports
   //   * `type` (required) {String} one of 'missing' or 'outdated' (used to customize the prompt)
-  get (options) {
+  get (options: InteractiveGetOptions): Promise<any> {
     if (!options || !options.name || !options.packageName || !options.packagePath || !options.type) {
       return Promise.resolve(false)
     }
@@ -236,12 +253,12 @@ class GetManager {
         description: 'Would you like to run `go get -u` [`' + options.packagePath + '`](http://' + options.packagePath + ')?',
         buttons: [{
           text: 'Run Go Get',
-          onDidClick: () => {
+          onDidClick: async () => {
             wasClicked = true
             notification.dismiss()
-            resolve(this.performGet(options.packagePath).then((outcome) => {
-              this.displayResult(options.packagePath, outcome)
-            }))
+            const outcome = await this.performGet(options.packagePath)
+            this.displayResult(options.packagePath, outcome)
+            resolve(outcome)
           }
         }]
       })
@@ -258,9 +275,8 @@ class GetManager {
       this.subscriptions.dispose()
     }
     this.subscriptions = null
-    this.goconfig = null
-    this.packages = null
-    this.onDidUpdateTools = null
+    this.packages.clear()
+    this.onDidUpdateTools.clear()
   }
 }
 export {GetManager}

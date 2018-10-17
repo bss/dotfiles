@@ -2,39 +2,39 @@
   "_args": [
     [
       {
-        "raw": "/private/var/folders/k0/hcg7crcn3rl8dq027g9l37j1k002wt/T/d-117812-28215-11vreqh.qsrr16pqfr/package.tgz",
+        "raw": "/private/var/folders/k0/hcg7crcn3rl8dq027g9l37j1k002wt/T/d-118825-8006-b225r4.hsmzn0zfr/package.tgz",
         "scope": null,
         "escapedName": null,
         "name": null,
-        "rawSpec": "/private/var/folders/k0/hcg7crcn3rl8dq027g9l37j1k002wt/T/d-117812-28215-11vreqh.qsrr16pqfr/package.tgz",
-        "spec": "/private/var/folders/k0/hcg7crcn3rl8dq027g9l37j1k002wt/T/d-117812-28215-11vreqh.qsrr16pqfr/package.tgz",
+        "rawSpec": "/private/var/folders/k0/hcg7crcn3rl8dq027g9l37j1k002wt/T/d-118825-8006-b225r4.hsmzn0zfr/package.tgz",
+        "spec": "/private/var/folders/k0/hcg7crcn3rl8dq027g9l37j1k002wt/T/d-118825-8006-b225r4.hsmzn0zfr/package.tgz",
         "type": "local"
       },
-      "/private/var/folders/k0/hcg7crcn3rl8dq027g9l37j1k002wt/T/apm-install-dir-117812-28215-1tr30u6.16ft8g2e29"
+      "/private/var/folders/k0/hcg7crcn3rl8dq027g9l37j1k002wt/T/apm-install-dir-118825-8006-12wtejr.qyctlhxgvi"
     ]
   ],
-  "_from": "../d-117812-28215-11vreqh.qsrr16pqfr/package.tgz",
-  "_id": "language-rspec@0.6.3",
+  "_from": "../d-118825-8006-b225r4.hsmzn0zfr/package.tgz",
+  "_id": "language-rspec@0.12.1",
   "_inCache": true,
   "_location": "/language-rspec",
   "_phantomChildren": {},
   "_requested": {
-    "raw": "/private/var/folders/k0/hcg7crcn3rl8dq027g9l37j1k002wt/T/d-117812-28215-11vreqh.qsrr16pqfr/package.tgz",
+    "raw": "/private/var/folders/k0/hcg7crcn3rl8dq027g9l37j1k002wt/T/d-118825-8006-b225r4.hsmzn0zfr/package.tgz",
     "scope": null,
     "escapedName": null,
     "name": null,
-    "rawSpec": "/private/var/folders/k0/hcg7crcn3rl8dq027g9l37j1k002wt/T/d-117812-28215-11vreqh.qsrr16pqfr/package.tgz",
-    "spec": "/private/var/folders/k0/hcg7crcn3rl8dq027g9l37j1k002wt/T/d-117812-28215-11vreqh.qsrr16pqfr/package.tgz",
+    "rawSpec": "/private/var/folders/k0/hcg7crcn3rl8dq027g9l37j1k002wt/T/d-118825-8006-b225r4.hsmzn0zfr/package.tgz",
+    "spec": "/private/var/folders/k0/hcg7crcn3rl8dq027g9l37j1k002wt/T/d-118825-8006-b225r4.hsmzn0zfr/package.tgz",
     "type": "local"
   },
   "_requiredBy": [
     "#USER"
   ],
-  "_resolved": "file:../d-117812-28215-11vreqh.qsrr16pqfr/package.tgz",
-  "_shasum": "b7ce46acf5c419dfdb2273d4dd4ceee8fbfb80fc",
+  "_resolved": "file:../d-118825-8006-b225r4.hsmzn0zfr/package.tgz",
+  "_shasum": "3cd07edbd872552101546236bb0f992a621df389",
   "_shrinkwrap": null,
-  "_spec": "/private/var/folders/k0/hcg7crcn3rl8dq027g9l37j1k002wt/T/d-117812-28215-11vreqh.qsrr16pqfr/package.tgz",
-  "_where": "/private/var/folders/k0/hcg7crcn3rl8dq027g9l37j1k002wt/T/apm-install-dir-117812-28215-1tr30u6.16ft8g2e29",
+  "_spec": "/private/var/folders/k0/hcg7crcn3rl8dq027g9l37j1k002wt/T/d-118825-8006-b225r4.hsmzn0zfr/package.tgz",
+  "_where": "/private/var/folders/k0/hcg7crcn3rl8dq027g9l37j1k002wt/T/apm-install-dir-118825-8006-12wtejr.qyctlhxgvi",
   "bugs": {
     "url": "https://github.com/pauldruziak/language-rspec/issues"
   },
@@ -62,18 +62,5 @@
     "type": "git",
     "url": "git+https://github.com/pauldruziak/language-rspec.git"
   },
-  "version": "0.6.3",
-  "_atomModuleCache": {
-    "version": 1,
-    "dependencies": [],
-    "extensions": {
-      ".coffee": [
-        "lib/language-rspec.coffee"
-      ],
-      ".json": [
-        "package.json"
-      ]
-    },
-    "folders": []
-  }
+  "version": "0.12.1"
 }

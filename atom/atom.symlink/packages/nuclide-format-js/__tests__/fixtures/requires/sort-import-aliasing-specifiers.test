@@ -1,5 +1,0 @@
-
-import type {B as C, A as D} from 'AB';
-import type {Foo} from 'Foo';
-
-function foo(a: C, b: D, foo: Foo) {}

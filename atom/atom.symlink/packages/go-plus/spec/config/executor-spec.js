@@ -108,24 +108,18 @@ describe('executor', () => {
 
     it('handles and returns an ENOENT error if the command was not found', () => {
       waitsForPromise(() => {
-        return executor.exec('nonexistentcommand', []).then((r) => {
+        return executor.exec('nonexistentcommand', [], executor.getOptions()).then((r) => {
           result = r
         }).catch((e) => { error = e })
       })
 
       runs(() => {
-        expect(result).toBeDefined()
         expect(result).toBeTruthy()
-        expect(result.error).toBeDefined()
         expect(result.error).toBeTruthy()
-        expect(result.error.code).toBe('ENOENT')
         expect(result.error.errno).toBe('ENOENT')
         expect(result.error.message).toBe('spawn nonexistentcommand ENOENT')
         expect(result.error.path).toBe('nonexistentcommand')
-        expect(result.exitcode).toBeDefined()
-        expect(result.exitcode).not.toBe(0)
         expect(result.exitcode).toBe(127)
-        expect(result.stdout).toBeDefined()
         expect(result.stdout).toBe('')
         expect(result.stderr).toBeDefined()
         if (os.platform() === 'win32') {
@@ -145,7 +139,7 @@ describe('executor', () => {
         command = path.resolve(__dirname, 'tools', 'env', 'env_windows_amd64.exe')
       }
 
-      let result = executor.execSync(command)
+      let result = executor.execSync(command, [], executor.getOptions())
       expect(result.exitcode).toBeDefined()
       expect(result.exitcode).toBe(0)
       expect(result.stdout).toBeDefined()
@@ -156,7 +150,7 @@ describe('executor', () => {
     })
 
     it('returns a message if the command was not found', () => {
-      let result = executor.execSync('nonexistentcommand')
+      let result = executor.execSync('nonexistentcommand', [], executor.getOptions())
       expect(result.exitcode).toBeDefined()
       expect(result.exitcode).toBe(127)
       expect(result.stdout).toBeDefined()

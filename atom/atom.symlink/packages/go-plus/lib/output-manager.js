@@ -1,6 +1,16 @@
+// @flow
 'use babel'
 
-export default class OutputManager {
+import type {PanelModel, Tab} from './panel/tab'
+
+class OutputManager implements PanelModel {
+  key: string
+  tab: Tab
+  output: string
+  props: Object
+  view: any
+  requestFocus: ?() => Promise<void>
+
   constructor () {
     this.key = 'output'
     this.tab = {
@@ -12,21 +22,13 @@ export default class OutputManager {
     this.output = ''
   }
 
-  isActive (active) {
-    this.active = active
-  }
-
-  setOrientation (orientation) {
-    this.orientation = orientation
-  }
-
-  update (props) {
+  update (props: Object) {
     const oldProps = this.props
     this.props = Object.assign({}, oldProps, props)
 
     const {exitcode = 0} = this.props
     if (exitcode !== 0 && this.requestFocus) {
-      if (atom.config.get('go-plus.panel.focusOnFailure')) {
+      if (atom.config.get('go-plus.panel.focusOnFailure') && this.requestFocus) {
         this.requestFocus()
       }
     }
@@ -36,3 +38,5 @@ export default class OutputManager {
     }
   }
 }
+
+export {OutputManager}

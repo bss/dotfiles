@@ -1,3 +1,4 @@
+// @flow
 /** @babel */
 /** @jsx etch.dom */
 /* eslint-disable react/no-unknown-property */
@@ -6,11 +7,29 @@ import {CompositeDisposable, TextEditor} from 'atom'
 import etch from 'etch'
 import EtchComponent from './../etch-component'
 
+import type {Tag} from './gomodifytags'
+
+export type AcceptedCallback = ({
+  tags: Array<Tag>,
+  transform: 'snakecase' | 'camelcase', // | 'lispcase'
+  sortTags: boolean
+}) => any
+
 export default class TagsDialog extends EtchComponent {
-  constructor (props) {
+  tags: Array<Tag>
+  case: 'snakecase' | 'camelcase' // | 'lispcase'
+  tagRegex: RegExp
+  optionRegex: RegExp
+  subscriptions: CompositeDisposable
+  panel: any
+  element: HTMLElement
+  onAccept: ?AcceptedCallback
+  sortTags: bool
+
+  constructor (props: Object) {
     super(props)
     this.tags = []
-    this.useSnakeCase = true
+    this.case = 'snakecase'
 
     this.tagRegex = /^[\w]*$/
     this.optionRegex = /^[\w,]*$/
@@ -37,9 +56,10 @@ export default class TagsDialog extends EtchComponent {
       ? (
         <div className='case-radio-buttons'>
           <label>Case: </label>
-          <label className='input-label'><input className='input-radio' type='radio' name='caseRadio' onchange={() => this.caseChanged()} ref='snakeCaseRadio' checked /> snake_case</label>
-          <label className='input-label'><input className='input-radio' type='radio' name='caseRadio' onchange={() => this.caseChanged()} /> camelCase</label><br />
-          <label className='input-label'><input className='input-toggle' type='checkbox' ref='sortCheckbox' onchange={() => this.sortChanged()} /> Sort Tags</label>
+          <label className='input-label'><input className='input-radio' type='radio' caseOption='snakecase' name='caseRadio' on={{change: this.caseChanged}} checked /> snake_case</label>
+          <label className='input-label'><input className='input-radio' type='radio' caseOption='camelcase' name='caseRadio' on={{change: this.caseChanged}} /> camelCase</label>
+          <label className='input-label'><input className='input-radio' type='radio' caseOption='lispcase' name='caseRadio' on={{change: this.caseChanged}} /> lisp-case</label><br />
+          <label className='input-label'><input className='input-toggle' type='checkbox' ref='sortCheckbox' on={{change: this.sortChanged}} /> Sort Tags</label>
         </div>
       )
       : null
@@ -69,7 +89,7 @@ export default class TagsDialog extends EtchComponent {
     )
   }
 
-  checkInput (editor, regex) {
+  checkInput (editor: any, regex: RegExp) {
     if (regex.test(editor.getText())) {
       editor.element.classList.remove('invalid-input-value')
     } else {
@@ -77,7 +97,7 @@ export default class TagsDialog extends EtchComponent {
     }
   }
 
-  makeListItem (tag, index) {
+  makeListItem (tag: Tag, index: number): any {
     let text = tag.tag
     if (tag.option) {
       text += ' (' + tag.option + ')'
@@ -85,8 +105,8 @@ export default class TagsDialog extends EtchComponent {
     return <li key={index}>{text}</li>
   }
 
-  caseChanged () {
-    this.useSnakeCase = this.refs.snakeCaseRadio.checked
+  caseChanged (evt: any) {
+    this.case = evt.target.caseOption
   }
 
   sortChanged () {
@@ -118,19 +138,25 @@ export default class TagsDialog extends EtchComponent {
   }
 
   confirm () {
+    if (this.tags.length === 0) {
+      this.addTag()
+    }
     if (this.onAccept) {
       this.onAccept({
         tags: this.tags,
-        useSnakeCase: this.useSnakeCase,
+        transform: this.case,
         sortTags: this.sortTags
       })
     }
     this.destroy()
   }
 
-  focusNextElement (direction) {
-    const elements = [this.refs.tag.element, this.refs.option.element, this.refs.submitButton]
-    const focusedElement = elements.find((el) => el.classList.contains('is-focused'))
+  focusNextElement (direction: number) {
+    const elements: Array<any> = [this.refs.tag.element, this.refs.option.element, this.refs.submitButton]
+    const focusedElement = elements.find((el: any) => el.classList.contains('is-focused'))
+    if (!focusedElement) {
+      return
+    }
     let focusedIndex = elements.indexOf(focusedElement)
 
     focusedIndex += direction
@@ -158,7 +184,7 @@ export default class TagsDialog extends EtchComponent {
     super.destroy()
     this.subscriptions.dispose()
     this.subscriptions = null
-    this.tags = null
+    this.tags = []
     this.onAccept = null
 
     if (this.panel) {

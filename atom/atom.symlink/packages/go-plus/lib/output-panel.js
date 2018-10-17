@@ -1,5 +1,6 @@
-/** @babel */
+// @flow
 /** @jsx etch.dom */
+'use babel'
 /* eslint-disable react/no-unknown-property */
 
 import etch from 'etch'
@@ -8,17 +9,19 @@ import EtchComponent from './etch-component'
 import AnsiStyle from './ansi'
 import { openFile, parseGoPosition, projectPath } from './utils'
 
-const locationRegex = /([\w-/.\\:]*.go:\d+)/g
+const locationRegex = /([\w-/.\\:]*.go:\d+(:\d+)?)/g
 
 export default class OutputPanel extends EtchComponent {
-  constructor (props = {}) {
+  scrollHeight: number
+
+  constructor (props: Object = {}) {
     super(props)
     if (this.props.model) {
       this.props.model.view = this
     }
   }
 
-  makeLink (text) {
+  makeLink (text: string) {
     const elements = []
     let lastIndex = 0
     let match
@@ -50,11 +53,6 @@ export default class OutputPanel extends EtchComponent {
     if (this.props.model && this.props.model.props && this.props.model.props.output) {
       output = this.props.model.props.output
     }
-    if (this.props && this.props.model) {
-      if (this.props.model.orientation === 'vertical') {
-        style = style + 'width: 100%; word-wrap: break-word;'
-      }
-    }
 
     return (
       <div ref='content' className='go-plus-output-panel' scrollTop={this.scrollHeight} style={style}>
@@ -63,8 +61,8 @@ export default class OutputPanel extends EtchComponent {
     )
   }
 
-  linkClicked (text, dir) {
-    const {file, line, column} = parseGoPosition(text)
+  linkClicked (text: string, dir: string) {
+    const {file, line = 1, column = 0} = parseGoPosition(text)
 
     let filepath
     if (path.isAbsolute(file)) {
@@ -103,6 +101,6 @@ export default class OutputPanel extends EtchComponent {
 
   destroy () {
     super.destroy()
-    this.props = null
+    this.props = {}
   }
 }

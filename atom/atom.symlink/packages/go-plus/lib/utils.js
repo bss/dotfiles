@@ -1,19 +1,16 @@
-'use babel'
+// @flow
 
 import fs from 'fs'
 
-function isValidEditor (e) {
+const isValidEditor = (e: any) => { // TODO atom$TextEditor
   if (!e || !e.getGrammar()) {
     return false
   }
   const grammar = e.getGrammar()
-  if (!grammar) {
-    return false
-  }
-  return grammar.scopeName === 'source.go'
+  return grammar && (grammar.scopeName === 'source.go' || grammar.scopeName === 'go')
 }
 
-function getEditor () {
+const getEditor = () => {
   if (!atom || !atom.workspace) {
     return
   }
@@ -25,7 +22,9 @@ function getEditor () {
   return editor
 }
 
-function getWordPosition (editor = getEditor()) {
+type WordPosition = ?[number, number]
+
+const getWordPosition = (editor: any = getEditor()): WordPosition => {
   if (!editor) {
     return undefined
   }
@@ -43,7 +42,7 @@ function getWordPosition (editor = getEditor()) {
   return [start, end]
 }
 
-function getCursorPosition (editor = getEditor()) {
+const getCursorPosition = (editor: any = getEditor()) => {
   if (!editor) {
     return undefined
   }
@@ -54,7 +53,7 @@ function getCursorPosition (editor = getEditor()) {
   return cursor.getBufferPosition()
 }
 
-function currentCursorOffset (editor = getEditor()) {
+const currentCursorOffset = (editor: any = getEditor()) => {
   if (!editor) {
     return undefined
   }
@@ -67,9 +66,9 @@ function currentCursorOffset (editor = getEditor()) {
   return utf8OffsetForBufferPosition(pos, editor)
 }
 
-function utf8OffsetForBufferPosition (pos, editor = getEditor()) {
+const utf8OffsetForBufferPosition = (pos: WordPosition, editor: any = getEditor()): number => {
   if (!editor || !editor.getBuffer() || !pos) {
-    return
+    return -1
   }
   const characterOffset = editor.getBuffer().characterIndexForPosition(pos)
   const text = editor.getText().substring(0, characterOffset)
@@ -82,8 +81,8 @@ function utf8OffsetForBufferPosition (pos, editor = getEditor()) {
  * @param  {object} [pos] An optional object containing `row` and `column` to scroll to.
  * @return {Promise} Returns a promise which resolves with the opened editor
  */
-function openFile (file, pos) {
-  return new Promise((resolve, reject) => {
+const openFile = async (file: string, pos: any): Promise<any> => {
+  await new Promise((resolve, reject) => {
     fs.access(file, fs.constants.F_OK | fs.constants.R_OK, (err) => {
       if (err) {
         reject(err)
@@ -91,25 +90,24 @@ function openFile (file, pos) {
       }
       resolve()
     })
-  }).then(() => {
-    // searchAllPanes avoids opening a file in another split pane if it is already open in one
-    const options = { searchAllPanes: true }
-    if (pos && pos.row) {
-      options.initialLine = pos.row
-    }
-    if (pos && pos.column) {
-      options.initialColumn = pos.column
-    }
-    return atom.workspace.open(file, options).then((editor) => {
-      if (pos) {
-        editor.scrollToBufferPosition(pos, { center: true })
-      }
-      return editor
-    })
   })
+  // searchAllPanes avoids opening a file in another split pane if it is already open in one
+  const options = {}
+  options.searchAllPanes = true
+  if (pos && pos.row) {
+    options.initialLine = pos.row
+  }
+  if (pos && pos.column) {
+    options.initialColumn = pos.column
+  }
+  const editor = await atom.workspace.open(file, options)
+  if (pos) {
+    editor.scrollToBufferPosition(pos, { center: true })
+  }
+  return editor
 }
 
-function stat (loc) {
+const stat = (loc: string): Promise<fs.Stats> => {
   return new Promise((resolve, reject) => {
     fs.stat(loc, (err, stats) => {
       if (err) {
@@ -120,7 +118,7 @@ function stat (loc) {
   })
 }
 
-function projectPath () {
+const projectPath = (): ?string => {
   const paths = atom.project.getPaths()
   if (paths && paths.length) {
     for (const p of paths) {
@@ -132,13 +130,15 @@ function projectPath () {
   return undefined
 }
 
-function parseGoPosition (identifier) {
-  if (!identifier || !identifier.length > 1) {
-    return undefined
-  }
+export type GoPos = {
+  file: string,
+  line?: number,
+  column?: number
+}
 
+const parseGoPosition = (identifier: string): GoPos => {
   if (!identifier.includes(':')) {
-    return {file: identifier, line: false, column: false}
+    return {file: identifier}
   }
 
   const windows = identifier[1] === ':'
@@ -152,7 +152,18 @@ function parseGoPosition (identifier) {
   const line = hasLine ? parseInt(components.pop(), 10) : undefined
   const file = components.join(':')
 
-  return {file: file, line: line, column: column}
+  return {file, line, column}
 }
 
-export { isValidEditor, getEditor, projectPath, openFile, getWordPosition, utf8OffsetForBufferPosition, currentCursorOffset, getCursorPosition, parseGoPosition, stat }
+export {
+  isValidEditor,
+  getEditor,
+  projectPath,
+  openFile,
+  getWordPosition,
+  utf8OffsetForBufferPosition,
+  currentCursorOffset,
+  getCursorPosition,
+  parseGoPosition,
+  stat
+}

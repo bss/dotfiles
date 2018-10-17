@@ -1,11 +1,20 @@
+// @flow
 'use babel'
 
 import {CompositeDisposable} from 'atom'
 import path from 'path'
 import {getEditor, isValidEditor, projectPath} from '../utils'
 
+import type {GoConfig} from './../config/service'
+
 class Formatter {
-  constructor (goconfig) {
+  subscriptions: CompositeDisposable
+  goconfig: GoConfig
+  updatingFormatterCache: bool
+  tool: string // 'gofmt' 'goimports', 'goreturns'
+  formatterCache: Map<string, string>
+
+  constructor (goconfig: GoConfig) {
     this.goconfig = goconfig
     this.subscriptions = new CompositeDisposable()
     this.updatingFormatterCache = false
@@ -19,10 +28,9 @@ class Formatter {
       this.subscriptions.dispose()
     }
     this.subscriptions = null
-    this.goconfig = null
-    this.tool = null
-    this.formatterCache = null
-    this.updatingFormatterCache = null
+    if (this.formatterCache) {
+      this.formatterCache.clear()
+    }
   }
 
   handleCommands () {
@@ -52,14 +60,11 @@ class Formatter {
   observeConfig () {
     this.subscriptions.add(atom.config.observe('go-plus.format.tool', (formatTool) => {
       this.tool = formatTool
-      if (this.toolCheckComplete) {
-        this.toolCheckComplete[formatTool] = false
-      }
       this.updateFormatterCache()
     }))
   }
 
-  handleWillSaveEvent (editor) {
+  handleWillSaveEvent (editor: any) {
     const format = atom.config.get('go-plus.format.formatOnSave')
     if (format) {
       this.format(editor, this.tool)
@@ -72,10 +77,10 @@ class Formatter {
   }
 
   resetFormatterCache () {
-    this.formatterCache = null
+    this.formatterCache.clear()
   }
 
-  updateFormatterCache () {
+  async updateFormatterCache (): Promise<any> {
     if (this.updatingFormatterCache) {
       return Promise.resolve(false)
     }
@@ -86,7 +91,7 @@ class Formatter {
       return Promise.resolve(false)
     }
 
-    const cache = new Map()
+    const cache: Map<string, string> = new Map()
     const paths = atom.project.getPaths()
     paths.push(false)
     const promises = []
@@ -109,25 +114,27 @@ class Formatter {
         }))
       }
     }
-    return Promise.all(promises).then(() => {
+
+    try {
+      await Promise.all(promises)
       this.formatterCache = cache
       this.updatingFormatterCache = false
       return this.formatterCache
-    }).catch((e) => {
+    } catch (e) {
       if (e.handle) {
         e.handle()
       }
       console.log(e)
       this.updatingFormatterCache = false
-    })
+    }
   }
 
-  cachedToolPath (toolName, editor) {
+  cachedToolPath (toolName: string, editor: any) {
     if (!this.formatterCache || !toolName) {
       return false
     }
 
-    const p = projectPath(editor)
+    const p = projectPath()
     if (p) {
       const key = toolName + ':' + p
       const cmd = this.formatterCache.get(key)
@@ -143,7 +150,7 @@ class Formatter {
     return false
   }
 
-  format (editor = getEditor(), tool = this.tool, filePath) {
+  format (editor: any = getEditor(), tool: string = this.tool, filePath?: string) {
     if (!isValidEditor(editor) || !editor.getBuffer()) {
       return
     }
@@ -169,8 +176,9 @@ class Formatter {
     }
 
     const r = this.goconfig.executor.execSync(formatCmd, args, options)
-    if (r.stderr && r.stderr.trim() !== '') {
-      console.log('gofmt: (stderr) ' + r.stderr)
+    const stderr = r.stderr instanceof Buffer ? r.stderr.toString() : r.stderr
+    if (stderr && stderr.trim() !== '') {
+      console.log('gofmt: (stderr) ' + stderr)
       return
     }
     if (r.exitcode === 0) {

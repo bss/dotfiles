@@ -1,3 +1,4 @@
+// @flow
 /** @babel */
 /** @jsx etch.dom */
 /* eslint-disable react/no-unknown-property */
@@ -5,8 +6,18 @@
 import etch from 'etch'
 import EtchComponent from './../etch-component'
 
+import type {Information} from './information'
+
+type Props = {
+  model?: Information,
+  style?: string,
+  content: string
+}
+
 export default class InformationView extends EtchComponent {
-  constructor (props) {
+  props: Props
+
+  constructor (props: Props) {
     if (!props.content) {
       props.content = 'empty'
     }
@@ -19,9 +30,6 @@ export default class InformationView extends EtchComponent {
 
   render () {
     let style = 'white-space: pre-wrap;'
-    if (this.props.model.orientation === 'vertical') {
-      style = style + ' width: 100%; word-wrap: break-word;'
-    }
     if (this.props.style) {
       style = style + ' ' + this.props.style
     }

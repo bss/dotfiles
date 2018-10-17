@@ -1,6 +1,7 @@
 'use babel';
 
 /* eslint-env browser */
+/* global advanceClock */
 
 function getGlyph (elm) {
   return window.getComputedStyle(elm, ':before')
@@ -95,7 +96,55 @@ describe('Tool Bar package', () => {
           tooltip: 'About Atom'
         });
         expect(toolBar.children.length).toBe(1);
-        expect(toolBar.firstChild.dataset.originalTitle).toBe('About Atom');
+        const element = toolBar.firstChild;
+        element.dispatchEvent(new CustomEvent('mouseenter', {bubbles: false}));
+        element.dispatchEvent(new CustomEvent('mouseover', {bubbles: true}));
+        advanceClock(1000);
+        const tooltip = document.body.querySelector('.tooltip');
+        expect(tooltip).not.toBeNull();
+        expect(tooltip.outerHTML.indexOf('About Atom')).not.toBe(-1);
+      });
+
+      it('with tooltip object', () => {
+        toolBarAPI.addButton({
+          icon: 'octoface',
+          callback: 'application:about',
+          tooltip: {
+            html: false,
+            title: '<h1>About Atom</h1>'
+          }
+        });
+        expect(toolBar.children.length).toBe(1);
+        const element = toolBar.firstChild;
+        element.dispatchEvent(new CustomEvent('mouseenter', {bubbles: false}));
+        element.dispatchEvent(new CustomEvent('mouseover', {bubbles: true}));
+        advanceClock(1000);
+        const tooltip = document.body.querySelector('.tooltip');
+        expect(tooltip).not.toBeNull();
+        expect(tooltip.outerHTML.indexOf('&lt;h1&gt;About Atom&lt;/h1&gt;')).not.toBe(-1);
+      });
+
+      it('with text', () => {
+        toolBarAPI.addButton({
+          icon: 'octoface',
+          callback: 'application:about',
+          text: '<span>text</span>'
+        });
+        expect(toolBar.children.length).toBe(1);
+        const element = toolBar.firstChild;
+        expect(element.outerHTML.indexOf('&lt;span&gt;text&lt;/span&gt;')).not.toBe(-1);
+      });
+
+      it('with html', () => {
+        toolBarAPI.addButton({
+          icon: 'octoface',
+          callback: 'application:about',
+          text: '<span>text</span>',
+          html: true
+        });
+        expect(toolBar.children.length).toBe(1);
+        const element = toolBar.firstChild;
+        expect(element.outerHTML.indexOf('<span>text</span>')).not.toBe(-1);
       });
 
       it('using default iconset', () => {
@@ -220,13 +269,14 @@ describe('Tool Bar package', () => {
 
       it('clicking button with function callback', () => {
         const spy = jasmine.createSpy();
-        toolBarAPI.addButton({
+        const button = toolBarAPI.addButton({
           icon: 'octoface',
           callback: spy
         });
         jasmine.attachToDOM(toolBar);
         toolBar.firstChild.click();
         expect(spy).toHaveBeenCalled();
+        expect(spy.mostRecentCall.object).toBe(button);
       });
 
       it('clicking button with function callback containing data', () => {
@@ -239,19 +289,6 @@ describe('Tool Bar package', () => {
         toolBar.firstChild.click();
         expect(spy).toHaveBeenCalled();
         expect(spy.mostRecentCall.args[0]).toEqual('foo');
-      });
-
-      it('and restores focus after click', () => {
-        toolBarAPI.addButton({
-          icon: 'octoface',
-          callback: 'editor:select-line',
-          tooltip: 'Select line'
-        });
-        const previouslyFocusedElement = document.activeElement;
-        toolBar.firstChild.dispatchEvent(new Event('mouseover'));
-        toolBar.firstChild.focus();
-        toolBar.firstChild.click();
-        expect(document.activeElement).toBe(previouslyFocusedElement);
       });
 
       describe('using priority setting', () => {

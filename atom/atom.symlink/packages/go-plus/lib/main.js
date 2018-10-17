@@ -1,4 +1,4 @@
-'use babel'
+// @flow
 
 import {CompositeDisposable} from 'atom'
 
@@ -7,13 +7,19 @@ export default {
   bootstrapped: null,
   builder: null,
   configservice: null,
-  orchestrator: null,
   formatter: null,
   getservice: null,
+  godef: null,
   godoc: null,
-  gorename: null,
   gomodifytags: null,
+  gorename: null,
+  information: null,
+  implements: null,
+  importer: null,
+  linter: null,
   loaded: null,
+  orchestrator: null,
+  outputManager: null,
   panelManager: null,
   statusbar: null,
   subscriptions: null,
@@ -28,14 +34,13 @@ export default {
     this.bootstrapped = false
     this.loaded = false
 
-    const Orchestrator = require('./orchestrator')
+    const {Orchestrator} = require('./orchestrator')
     this.orchestrator = new Orchestrator()
     this.subscriptions.add(this.orchestrator)
 
     const {Bootstrap} = require('./bootstrap')
     this.bootstrap = new Bootstrap(() => {
       this.bootstrapped = true
-      this.showPanel()
       this.load()
       this.loaded = true
     })
@@ -51,24 +56,31 @@ export default {
     this.loaded = false
     if (this.subscriptions) {
       this.subscriptions.dispose()
+      this.subscriptions = null
     }
-    this.subscriptions = null
     this.bootstrap = null
-    this.formatter = null
-    this.statusbar = null
-    this.configservice = null
-    this.getservice = null
-    this.panelManager = null
-    this.tester = null
     this.builder = null
-    this.autocompleteProvider = null
-    this.godoc = null
-    this.gorename = null
-    this.gomodifytags = null
+    this.configservice = null
+    this.formatter = null
+    this.getservice = null
     this.godef = null
-    this.hyperclickProvider = null
+    this.godoc = null
+    this.gomodifytags = null
+    this.gorename = null
+    this.information = null
+    this.implements = null
+    this.importer = null
+    this.linter = null
+    this.orchestrator = null
+    this.outputManager = null
+    this.panelManager = null
+    this.statusbar = null
+    this.tester = null
     this.usage = null
     this.what = null
+
+    this.autocompleteProvider = null
+    this.hyperclickProvider = null
   },
 
   load () {
@@ -85,10 +97,12 @@ export default {
     this.loadImplements()
     this.loadGorename()
     this.loadGoModifyTags()
+    this.loadImporter()
     this.getGodef()
     if (!atom.config.get('go-plus.testing')) {
       this.loadPackageManager()
     }
+    this.getPanelManager().requestUpdate()
 
     this.subscriptions.add(this.orchestrator.register('format', (e) => { return this.formatter.handleWillSaveEvent(e) }, 'willSave'))
     this.subscriptions.add(this.orchestrator.register('builder', (editor, path) => { return this.builder.build(editor, path) }))
@@ -118,6 +132,15 @@ export default {
     return this.information
   },
 
+  loadImporter () {
+    if (this.importer) {
+      return this.importer
+    }
+    const {Importer} = require('./import/importer')
+    this.importer = new Importer(this.provideGoConfig())
+    return this.importer
+  },
+
   loadDoc () {
     if (this.godoc) {
       return this.godoc
@@ -145,9 +168,9 @@ export default {
     if (this.implements) {
       return this.implements
     }
-    const Implements = require('./implements/implements')
+    const {Implements} = require('./implements/implements')
     this.implements = new Implements(this.provideGoConfig())
-    const ImplementsView = require('./implements/implements-view')
+    const {ImplementsView} = require('./implements/implements-view')
     const view = this.consumeViewProvider({
       view: ImplementsView,
       model: this.implements
@@ -203,7 +226,7 @@ export default {
     if (this.outputManager) {
       return this.outputManager
     }
-    const OutputManager = require('./output-manager')
+    const {OutputManager} = require('./output-manager')
     this.outputManager = new OutputManager()
 
     const OutputPanel = require('./output-panel')
@@ -266,7 +289,7 @@ export default {
     if (this.gomodifytags) {
       return this.gomodifytags
     }
-    const GoModifyTags = require('./tags/gomodifytags')
+    const {GoModifyTags} = require('./tags/gomodifytags')
     this.gomodifytags = new GoModifyTags(this.provideGoConfig())
     if (this.subscriptions) {
       this.subscriptions.add(this.gomodifytags)
@@ -322,12 +345,7 @@ export default {
       return this.panelManager
     }
     const {PanelManager} = require('./panel/panel-manager')
-    this.panelManager = new PanelManager(() => {
-      if (this.statusbar) {
-        return this.statusbar
-      }
-      return false
-    })
+    this.panelManager = new PanelManager(() => this.statusbar || false)
 
     if (this.subscriptions) {
       this.subscriptions.add(this.panelManager)
@@ -341,7 +359,7 @@ export default {
       if (this.statusbar) {
         this.getPanelManager().showStatusBar()
       }
-      this.getPanelManager().setActivated()
+      this.getPanelManager().togglePanel(true)
     }
   },
 
@@ -362,12 +380,11 @@ export default {
   },
 
   // Services
-  consumeStatusBar (service) {
+  consumeStatusBar (service: any) {
     this.statusbar = service
-    this.showPanel()
   },
 
-  consumeViewProvider (provider) {
+  consumeViewProvider (provider: any) {
     if (!provider) {
       return
     }
@@ -375,7 +392,7 @@ export default {
     return this.getPanelManager().registerViewProvider(provider.view, provider.model)
   },
 
-  consumeLinter (registry) {
+  consumeLinter (registry: any) {
     this.buildLinter = registry({name: 'go build'})
     this.subscriptions.add(this.buildLinter)
     this.gometalinterLinter = registry({name: 'gometalinter'})
@@ -396,7 +413,7 @@ export default {
       return this.getservice.provide()
     }
     const {GetService} = require('./get/service')
-    this.getservice = new GetService(this.provideGoConfig(), this.loadOutput())
+    this.getservice = new GetService(this.provideGoConfig(), () => this.loadOutput())
     return this.getservice.provide()
   },
 

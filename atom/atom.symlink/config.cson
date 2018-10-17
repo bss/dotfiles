@@ -20,14 +20,42 @@
       "metrics"
       "racer"
       "react"
+      "atom-math"
+      "nuclide-format-js"
+    ]
+    ignoredNames: [
+      ".git"
+      ".hg"
+      ".svn"
+      ".DS_Store"
+      "._*"
+      "Thumbs.db"
+      "desktop.ini"
+      "node_modules"
+      "tmp"
+      "ar_doc"
     ]
     telemetryConsent: "no"
+    useTreeSitterParsers: true
   editor:
     fontSize: 13
     invisibles: {}
     showIndentGuide: true
+  "exception-reporting":
+    userId: "253dc01b-14bd-44b3-80e7-9e666b54cf0f"
+  "file-icons":
+    coloured: false
+    onChanges: true
+    strategies:
+      grammar: false
+      hashbangs: false
+      linguist: false
+      modelines: false
+      usertypes: false
   "fuzzy-finder":
-    useAlternateScoring: true
+    ignoredNames: [
+      "node_modules"
+    ]
   "git-plus": {}
   "go-plus":
     panel:

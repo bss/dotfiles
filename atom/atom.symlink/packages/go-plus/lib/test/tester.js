@@ -1,16 +1,33 @@
-'use babel'
+// @flow
 
-import {CompositeDisposable} from 'atom'
 import _ from 'lodash'
 import fs from 'fs-extra'
 import os from 'os'
-import parser from './gocover-parser'
 import path from 'path'
 import temp from 'temp'
+import argparser from 'yargs-parser/lib/tokenize-arg-string'
+import {CompositeDisposable} from 'atom'
+import parser from './gocover-parser'
 import {getEditor, isValidEditor} from '../utils'
 
+import type {GoConfig} from './../config/service'
+import type {CoverageRange} from './gocover-parser'
+import type {OutputManager} from './../output-manager'
+
 class Tester {
-  constructor (goconfig, output) {
+  disposed: bool
+  running: bool
+  goconfig: GoConfig
+  output: OutputManager
+  subscriptions: CompositeDisposable
+  markedEditors: Map<string, string>
+  coverageHighlightMode: 'covered-and-uncovered' | 'covered' | 'uncovered' | 'disabled'
+  coverageDisplayMode: 'highlight' | 'gutter'
+  tempDir: string
+  coverageFile: string
+  ranges: Array<CoverageRange>
+
+  constructor (goconfig: GoConfig, output: OutputManager) {
     this.disposed = false
     this.goconfig = goconfig
     this.output = output
@@ -31,19 +48,17 @@ class Tester {
     if (this.markedEditors) {
       this.markedEditors.clear()
     }
-    this.markedEditors = null
+    this.markedEditors.clear()
     if (this.subscriptions) {
       this.subscriptions.dispose()
     }
     this.subscriptions = null
-    this.goconfig = null
-    this.output = null
-    this.running = null
-    this.coverageDisplayMode = null
-    this.coverageHighlightMode = null
   }
 
   handleCommands () {
+    this.subscriptions.add(atom.commands.add('atom-workspace', 'golang:toggle-test-with-coverage', () => {
+      atom.config.set('go-plus.test.runTestsWithCoverage', !atom.config.get('go-plus.test.runTestsWithCoverage'))
+    }))
     this.subscriptions.add(atom.commands.add('atom-workspace', 'golang:run-tests', () => {
       if (!getEditor()) {
         return
@@ -73,7 +88,7 @@ class Tester {
     }))
   }
 
-  handleSaveEvent (editor, path) {
+  handleSaveEvent (editor: any, path: string): Promise<void> {
     if (atom.config.get('go-plus.test.runTestsOnSave')) {
       return this.runTests(editor)
     }
@@ -94,7 +109,7 @@ class Tester {
     }
   }
 
-  addMarkersToEditor (editor) {
+  addMarkersToEditor (editor: any) {
     if (!isValidEditor(editor)) {
       return
     }
@@ -114,7 +129,10 @@ class Tester {
       return
     }
 
-    const editorRanges = _.filter(this.ranges, (r) => { return _.endsWith(file, r.file.replace(/^_\//g, '')) })
+    const re = /[^/\\]+$/g
+    const editorRanges = _.filter(this.ranges, (r) => {
+      return file.match(re)[0] === r.file.match(re)[0]
+    })
 
     if (!editorRanges || editorRanges.length <= 0) {
       return
@@ -144,7 +162,7 @@ class Tester {
     }
   }
 
-  clearMarkers (editor) {
+  clearMarkers (editor: any) {
     if (!editor || !editor.id || !editor.getBuffer() || !this.markedEditors) {
       return
     }
@@ -182,7 +200,7 @@ class Tester {
           console.log(e)
         }
       })
-      this.tempDir = null
+      this.tempDir = ''
     }
   }
 
@@ -194,20 +212,58 @@ class Tester {
     this.coverageFile = path.join(this.tempDir, 'coverage.out')
   }
 
-  runTests (editor = getEditor()) {
+  buildGoTestArgs (timeoutMillis: number = 60000, coverage: bool = false): Array<string> {
+    const args = ['test']
+    if (coverage) {
+      args.push('-coverprofile=' + this.coverageFile)
+    }
+    const configFlags = atom.config.get('go-plus.config.additionalTestArgs')
+
+    let shortFlag = false
+    let verboseFlag = false
+    let userSuppliedTimout = false
+
+    if (configFlags && configFlags.length) {
+      const arr = argparser(configFlags)
+
+      for (const arg of arr) {
+        args.push(arg)
+        if (arg.startsWith('-timeout')) {
+          userSuppliedTimout = true
+        }
+        if (arg === '-short') {
+          shortFlag = true
+        }
+        if (arg === '-v') {
+          verboseFlag = true
+        }
+      }
+    }
+
+    if (!userSuppliedTimout) {
+      args.push('-timeout=' + timeoutMillis + 'ms')
+    }
+
+    if (!shortFlag && atom.config.get('go-plus.test.runTestsWithShortFlag')) {
+      args.push('-short')
+    }
+    if (!verboseFlag && atom.config.get('go-plus.test.runTestsWithVerboseFlag')) {
+      args.push('-v')
+    }
+
+    return args
+  }
+
+  async runTests (editor: any = getEditor()): Promise<void> {
     if (!isValidEditor(editor)) {
-      return Promise.reject(new Error('invalid editor'))
+      throw new Error('invalid editor')
     }
     const buffer = editor.getBuffer()
     if (!buffer) {
-      return Promise.reject(new Error('falsy buffer'))
+      throw new Error('falsy buffer')
     }
-    if (this.running) {
-      return Promise.resolve()
-    }
-
-    if (!this.goconfig) {
-      return Promise.resolve()
+    if (this.running || !this.goconfig || this.dispoed) {
+      return
     }
 
     this.running = true
@@ -216,83 +272,65 @@ class Tester {
     if (runTestsWithCoverage) {
       this.createCoverageFile()
     }
-    let go = false
-    let cover = false
-    return this.goconfig.locator.findTool('go').then((cmd) => {
-      if (!cmd) {
-        return Promise.reject(new Error('cannot find go executable'))
-      }
-      go = cmd
-      return this.goconfig.locator.findTool('cover')
-    }).then((cmd) => {
-      if (!cmd) {
-        return Promise.reject(new Error('cannot find cover executable'))
-      }
-      cover = cmd
-      return cmd
-    }).then(() => {
-      if (!go || !cover || this.disposed) {
-        this.running = false
-        return Promise.resolve()
-      }
-      const executorOptions = this.goconfig.executor.getOptions('file')
-      executorOptions.timeout = atom.config.get('go-plus.test.timeout')
-      if (!executorOptions.timeout) {
-        executorOptions.timeout = 60000
-      }
-      const cmd = go
-      const args = ['test', '-timeout=' + executorOptions.timeout + 'ms']
-      if (runTestsWithCoverage) {
-        args.push('-coverprofile=' + this.coverageFile)
-      }
-      if (atom.config.get('go-plus.test.runTestsWithShortFlag')) {
-        args.push('-short')
-      }
-      if (atom.config.get('go-plus.test.runTestsWithVerboseFlag')) {
-        args.push('-v')
-      }
-      if (this.output) {
-        this.output.update({
-          output: 'Running go ' + args.join(' ') + ' with a ' + executorOptions.timeout + 'ms timeout',
-          state: 'pending',
-          exitcode: 0,
-          dir: executorOptions.cwd
-        })
-      }
+    const [go, cover] = await Promise.all([
+      this.goconfig.locator.findTool('go'),
+      this.goconfig.locator.findTool('cover')
+    ])
+    if (!go) {
+      throw new Error('cannot find go executable')
+    }
+    if (!cover) {
+      throw new Error('cannot find cover executable')
+    }
 
-      return this.goconfig.executor.exec(cmd, args, executorOptions).then((r) => {
-        let output = r.stdout
-        if (r.stderr && r.stderr.trim() !== '') {
-          output = r.stderr + os.EOL + r.stdout
-        }
+    const executorOptions = this.goconfig.executor.getOptions('file')
+    const timeout = atom.config.get('go-plus.test.timeout') || 60000
+    executorOptions.timeout = timeout
 
-        output = output.trim()
-        let state
-
-        if (r.exitcode === 0) {
-          if (runTestsWithCoverage) {
-            this.ranges = parser.ranges(this.coverageFile)
-            this.addMarkersToEditors()
-          }
-          state = 'success'
-        } else if (r.exitcode === 124) {
-          state = 'fail'
-          output = output + os.EOL + 'Tests timed out after ' + atom.config.get('go-plus.test.timeout') + 'ms'
-        } else {
-          state = 'fail'
-        }
-        if (this.output) {
-          this.output.update({
-            exitcode: r.exitcode,
-            output: output,
-            state: state,
-            dir: executorOptions.cwd
-          })
-        }
-        this.running = false
-        return r.exitcode === 0 ? Promise.resolve() : Promise.reject(new Error(output))
+    const args = this.buildGoTestArgs(executorOptions.timeout, runTestsWithCoverage)
+    if (this.output) {
+      this.output.update({
+        output: 'Running go ' + args.join(' ') + ' with a ' + timeout + 'ms timeout',
+        state: 'pending',
+        exitcode: 0,
+        dir: executorOptions.cwd
       })
-    })
+    }
+
+    const r = await this.goconfig.executor.exec(go, args, executorOptions)
+    let output = r.stdout instanceof Buffer ? r.stdout.toString() : r.stdout
+    if (r.stderr) {
+      const stderr: string = r.stderr instanceof Buffer ? r.stderr.toString() : r.stderr
+      output = stderr + os.EOL + output
+    }
+
+    output = output.trim()
+    let state
+    if (r.exitcode === 0) {
+      state = 'success'
+    } else if (r.exitcode === 124) {
+      state = 'fail'
+      output = output + os.EOL + 'Tests timed out after ' + atom.config.get('go-plus.test.timeout') + 'ms'
+    } else {
+      state = 'fail'
+    }
+    if (runTestsWithCoverage) {
+      this.ranges = parser.ranges(this.coverageFile)
+      this.addMarkersToEditors()
+    }
+    if (this.output) {
+      this.output.update({
+        exitcode: r.exitcode,
+        output: output,
+        state: state,
+        dir: executorOptions.cwd
+      })
+    }
+    this.running = false
+    if (r.exitcode !== 0) {
+      throw new Error(output)
+    }
   }
 }
+
 export {Tester}

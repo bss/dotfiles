@@ -42,9 +42,12 @@ describe('go-get', () => {
         pathkey = 'Path'
       }
       const fakeexecutable = 'go_' + platform + '_' + arch + executableSuffix
-      const fakego = path.join(__dirname, '..', 'config', 'tools', 'go', fakeexecutable)
+      const configPath = path.join(__dirname, '..', 'config')
+      const fakego = path.join(configPath, 'tools', 'go', fakeexecutable)
       go = path.join(gorootbin, 'go' + executableSuffix)
       fs.copySync(fakego, go)
+      let gojson = path.join(configPath, 'fixtures', 'go-' + platform + '.json')
+      fs.copySync(gojson, path.join(gorootbin, 'go.json'))
       process.env[pathkey] = gorootbin
       process.env['GOPATH'] = gopath
       process.env['GOROOT'] = goroot
@@ -81,7 +84,7 @@ describe('go-get', () => {
       runs(() => {
         let stat = fs.statSync(gocodebinary)
         expect(stat.size).toBe(0)
-        manager.register('github.com/nsf/gocode')
+        manager.register('github.com/mdempsky/gocode')
         manager.register('golang.org/x/tools/cmd/goimports')
       })
 
@@ -96,6 +99,7 @@ describe('go-get', () => {
         expect(stat.size).toBeGreaterThan(0)
         stat = fs.statSync(goimportsbinary)
         expect(stat.size).toBeGreaterThan(0)
+
         expect(outcome).toBeTruthy()
         expect(outcome.success).toBe(true)
         expect(outcome.results).toBeTruthy()

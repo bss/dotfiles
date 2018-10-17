@@ -81,7 +81,7 @@
       }
       {
         'begin': '(?<!\\#)\\{(?=.+(,|(do)|\\{|\\}|\\||(\\#.*))\\s*)'
-        'end': '\\s*\\}'
+        'end': '\\s*\\}(?!,)'
         'name': 'meta.section.attributes.haml'
         'patterns': [
           {
@@ -259,6 +259,19 @@
     'patterns': [
       {
         'include': 'source.css'
+      }
+    ]
+  }
+  {
+    'begin': '^(\\s*)(:ruby2js)$'
+    'end': '^(?!\\1\\s+|\\n)'
+    'name': 'meta.embedded.ruby2js'
+    'captures':
+      '2':
+        'name': 'entity.name.tag.haml'
+    'patterns': [
+      {
+        'include': 'source.ruby'
       }
     ]
   }

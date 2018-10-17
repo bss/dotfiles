@@ -63,7 +63,7 @@ describe('gomodifytags', () => {
       beforeEach(() => {
         options = {
           tags: [{tag: 'xml', option: null}, {tag: 'bson', option: null}],
-          useSnakeCase: true,
+          transform: 'snakecase',
           sortTags: false
         }
       })
@@ -98,7 +98,7 @@ describe('gomodifytags', () => {
         const args = gomodifytags.buildArgs(editor, options, 'Add')
         expect(args.length).toBeGreaterThan(3)
         expect(args[2]).toBe('-offset')
-        expect(args[3]).toBe(54)
+        expect(args[3]).toBe('54')
       })
 
       it('uses the -line flag when there is a selection', () => {
@@ -118,7 +118,7 @@ describe('gomodifytags', () => {
       })
 
       it('uses the -transform flag when camel case is specified', () => {
-        options.useSnakeCase = false
+        options.transform = 'camelcase'
         editor.setCursorBufferPosition([4, 6])
         const args = gomodifytags.buildArgs(editor, options, 'Add')
         const i = args.indexOf('-transform')
@@ -193,7 +193,7 @@ describe('gomodifytags', () => {
         waitsForPromise(() => {
           return gomodifytags.modifyTags(editor, {
             tags: [{tag: 'json', option: 'omitempty'}],
-            useSnakeCase: true,
+            transform: 'snakecase',
             sortTags: false
           }, 'Add', command).then((r) => {
             result = r

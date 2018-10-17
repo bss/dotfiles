@@ -2,40 +2,39 @@
   "_args": [
     [
       {
-        "raw": "/private/var/folders/k0/hcg7crcn3rl8dq027g9l37j1k002wt/T/d-117417-16489-13mf49p.jlucjtt9/package.tgz",
+        "raw": "/private/tmp/d-118512-12848-rf5t1y.wgofhnz5mi/package.tgz",
         "scope": null,
         "escapedName": null,
         "name": null,
-        "rawSpec": "/private/var/folders/k0/hcg7crcn3rl8dq027g9l37j1k002wt/T/d-117417-16489-13mf49p.jlucjtt9/package.tgz",
-        "spec": "/private/var/folders/k0/hcg7crcn3rl8dq027g9l37j1k002wt/T/d-117417-16489-13mf49p.jlucjtt9/package.tgz",
+        "rawSpec": "/private/tmp/d-118512-12848-rf5t1y.wgofhnz5mi/package.tgz",
+        "spec": "/private/tmp/d-118512-12848-rf5t1y.wgofhnz5mi/package.tgz",
         "type": "local"
       },
-      "/private/var/folders/k0/hcg7crcn3rl8dq027g9l37j1k002wt/T/apm-install-dir-117417-16489-ru6wmq.ukbdyousor"
+      "/private/tmp/apm-install-dir-118512-12848-18mg2wk.bvysrr7ldi"
     ]
   ],
-  "_from": "../d-117417-16489-13mf49p.jlucjtt9/package.tgz",
-  "_id": "language-ini@1.19.0",
+  "_from": "../d-118512-12848-rf5t1y.wgofhnz5mi/package.tgz",
+  "_id": "language-ini@1.20.0",
   "_inCache": true,
-  "_installable": true,
   "_location": "/language-ini",
   "_phantomChildren": {},
   "_requested": {
-    "raw": "/private/var/folders/k0/hcg7crcn3rl8dq027g9l37j1k002wt/T/d-117417-16489-13mf49p.jlucjtt9/package.tgz",
+    "raw": "/private/tmp/d-118512-12848-rf5t1y.wgofhnz5mi/package.tgz",
     "scope": null,
     "escapedName": null,
     "name": null,
-    "rawSpec": "/private/var/folders/k0/hcg7crcn3rl8dq027g9l37j1k002wt/T/d-117417-16489-13mf49p.jlucjtt9/package.tgz",
-    "spec": "/private/var/folders/k0/hcg7crcn3rl8dq027g9l37j1k002wt/T/d-117417-16489-13mf49p.jlucjtt9/package.tgz",
+    "rawSpec": "/private/tmp/d-118512-12848-rf5t1y.wgofhnz5mi/package.tgz",
+    "spec": "/private/tmp/d-118512-12848-rf5t1y.wgofhnz5mi/package.tgz",
     "type": "local"
   },
   "_requiredBy": [
     "#USER"
   ],
-  "_resolved": "file:../d-117417-16489-13mf49p.jlucjtt9/package.tgz",
-  "_shasum": "ca74444860c3f6c58a78ca5021850500f291c94d",
+  "_resolved": "file:../d-118512-12848-rf5t1y.wgofhnz5mi/package.tgz",
+  "_shasum": "ec9c7f2af63704b90e4c9be42b3dab5ccdbc3b34",
   "_shrinkwrap": null,
-  "_spec": "/private/var/folders/k0/hcg7crcn3rl8dq027g9l37j1k002wt/T/d-117417-16489-13mf49p.jlucjtt9/package.tgz",
-  "_where": "/private/var/folders/k0/hcg7crcn3rl8dq027g9l37j1k002wt/T/apm-install-dir-117417-16489-ru6wmq.ukbdyousor",
+  "_spec": "/private/tmp/d-118512-12848-rf5t1y.wgofhnz5mi/package.tgz",
+  "_where": "/private/tmp/apm-install-dir-118512-12848-18mg2wk.bvysrr7ldi",
   "author": {
     "name": "Jacob Bednarz",
     "email": "jacob.bednarz@gmail.com",
@@ -63,5 +62,5 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "version": "1.19.0"
+  "version": "1.20.0"
 }

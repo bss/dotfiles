@@ -2,7 +2,7 @@
 /* eslint-env jasmine */
 
 import path from 'path'
-import Orchestrator from './../lib/orchestrator'
+import {Orchestrator} from './../lib/orchestrator'
 
 describe('orchestrator', () => {
   let orchestrator = null
@@ -50,7 +50,7 @@ describe('orchestrator', () => {
       waitsForPromise(() => {
         const filepath = path.join(__dirname, 'fixtures', 'main.go')
         return atom.workspace.open(filepath).then((e) => {
-          e.save()
+          return e.save()
         })
       })
 
@@ -72,7 +72,7 @@ describe('orchestrator', () => {
       waitsForPromise(() => {
         const filepath = path.join(__dirname, 'fixtures', 'main.go')
         return atom.workspace.open(filepath).then((e) => {
-          e.save()
+          return e.save()
         })
       })
 
@@ -99,7 +99,7 @@ describe('orchestrator', () => {
       waitsForPromise(() => {
         const filepath = path.join(__dirname, 'fixtures', 'main.go')
         return atom.workspace.open(filepath).then((e) => {
-          e.save()
+          return e.save()
         })
       })
 
@@ -139,7 +139,7 @@ describe('orchestrator', () => {
       waitsForPromise(() => {
         const filepath = path.join(__dirname, 'fixtures', 'main.go')
         return atom.workspace.open(filepath).then((e) => {
-          e.save()
+          return e.save()
         })
       })
 
@@ -161,7 +161,7 @@ describe('orchestrator', () => {
       waitsForPromise(() => {
         const filepath = path.join(__dirname, 'fixtures', 'main.go')
         return atom.workspace.open(filepath).then((e) => {
-          e.save()
+          return e.save()
         })
       })
 
@@ -184,7 +184,7 @@ describe('orchestrator', () => {
       waitsForPromise(() => {
         const filepath = path.join(__dirname, 'fixtures', 'main.go')
         return atom.workspace.open(filepath).then((e) => {
-          e.save()
+          return e.save()
         })
       })
 

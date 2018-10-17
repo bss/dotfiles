@@ -1,4 +1,4 @@
-'use babel'
+// @flow
 
 import {BufferedProcess} from 'atom'
 import {spawnSync} from 'child_process'
@@ -7,19 +7,35 @@ import fs from 'fs-extra'
 import path from 'path'
 import {getEditor, projectPath} from '../utils'
 
+export type ExecutorOptions = {
+  timeout?: number,
+  encoding?: string,
+  env?: {[string]: ?string},
+  cwd?: string,
+  input?: string
+}
+
+export type ExecResult = {
+  error: ?{
+    code: number,
+    errno?: string,
+    message?: string,
+    path: string
+  },
+  exitcode: number,
+  stdout: string | Buffer,
+  stderr: string | Buffer
+}
+
 class Executor {
   dispose () {
   }
 
-  execSync (command, args = [], options) {
-    options = this.getOptions(options)
-    if (!args) {
-      args = []
-    }
+  execSync (command: string, args?: Array<string> = [], options: ExecutorOptions): ExecResult {
+    const opt: any = this.ensureOptions(options)
+    const done = spawnSync(command, args, opt)
 
-    const done = spawnSync(command, args, options)
     let code = done.status
-
     let stdout = ''
     if (done.stdout && done.stdout.length > 0) {
       stdout = done.stdout
@@ -28,25 +44,27 @@ class Executor {
     if (done.stderr && done.stderr.length > 0) {
       stderr = done.stderr
     }
-    let error = done.error
-    if (error && error.code) {
-      switch (error.code) {
+
+    let err: any = done.error
+    if (done.error && done.error.code) {
+      switch (err.code) {
         case 'ENOENT':
           code = 127
           break
         case 'ENOTCONN': // https://github.com/iojs/io.js/pull/1214
-          error = null
+          err = null
           code = 0
           break
       }
     }
 
-    return {exitcode: code, stdout: stdout, stderr: stderr, error: error}
+    return {exitcode: code, stdout: stdout, stderr: stderr, error: err}
   }
 
-  exec (command, args = [], options) {
+  exec (command: string, args: Array<string> = [], options: ExecutorOptions): Promise<ExecResult> {
     return new Promise((resolve, reject) => {
-      options = this.getOptions(options)
+      const opt: any = this.ensureOptions(options)
+
       if (!args) {
         args = []
       }
@@ -74,7 +92,7 @@ class Executor {
           if (stderr.replace(/\r?\n|\r/g, '') === nonexistentcommand) {
             resolve({
               error: {
-                code: 'ENOENT',
+                code: 3025,
                 errno: 'ENOENT',
                 message: 'spawn ' + command + ' ENOENT',
                 path: command
@@ -95,16 +113,26 @@ class Executor {
         })
       }
 
-      const bufferedprocess = new BufferedProcess({command: command, args: args, options: options, stdout: stdoutFn, stderr: stderrFn, exit: exitFn})
-      setTimeout(() => {
-        bufferedprocess.kill()
-        resolve({
-          error: null,
-          exitcode: 124,
-          stdout: stdout,
-          stderr: stderr
-        })
-      }, options.timeout)
+      const bufferedprocess = new BufferedProcess({
+        command: command,
+        args: args,
+        options: opt,
+        stdout: stdoutFn,
+        stderr: stderrFn,
+        exit: exitFn
+      })
+
+      if (options.timeout && options.timeout > 0) {
+        setTimeout(() => {
+          bufferedprocess.kill()
+          resolve({
+            error: null,
+            exitcode: 124,
+            stdout: stdout,
+            stderr: stderr
+          })
+        }, options.timeout)
+      }
       bufferedprocess.onWillThrowError((err) => {
         let e = err
         if (err) {
@@ -123,16 +151,18 @@ class Executor {
         })
       })
 
-      if (options.input && options.input.length > 0) {
-        bufferedprocess.process.stdin.end(options.input)
+      if (opt.input && opt.input.length > 0) {
+        bufferedprocess.process.stdin.end(opt.input)
       }
     })
   }
 
-  getOptions (options, editor = getEditor()) {
-    if (!options || typeof options === 'string') {
-      options = this.getDefaultOptions(options, editor)
-    }
+  getOptions (kind: 'file' | 'project' = 'file', editor: any = getEditor()): ExecutorOptions {
+    const result: ExecutorOptions = this.getDefaultOptions(kind, editor)
+    return this.ensureOptions(result)
+  }
+
+  ensureOptions (options: ExecutorOptions): ExecutorOptions {
     if (!options.timeout) {
       options.timeout = 10000
     }
@@ -153,8 +183,8 @@ class Executor {
     return options
   }
 
-  getDefaultOptions (key = 'file', editor = getEditor()) {
-    const options = {}
+  getDefaultOptions (key: 'file' | 'project' = 'file', editor: any = getEditor()): ExecutorOptions {
+    let options = {}
     switch (key) {
       case 'file':
         let file = editor && editor.getPath()

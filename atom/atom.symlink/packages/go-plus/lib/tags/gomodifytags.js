@@ -1,12 +1,30 @@
-'use babel'
+// @flow
 
 import {CompositeDisposable, Point} from 'atom'
 import {isValidEditor} from '../utils'
 import {buildGuruArchive} from '../guru-utils'
 import TagsDialog from './tags-dialog'
 
-export default class GoModifyTags {
-  constructor (goconfig) {
+import type {GoConfig} from './../config/service'
+
+type Mode = 'Add' | 'Remove'
+
+export type Tag = {
+  tag: string,
+  option?: string
+}
+
+type GoModifyTagsOptions = {
+  tags: Array<Tag>,
+  transform: any,
+  sortTags: bool
+}
+
+class GoModifyTags {
+  goconfig: GoConfig
+  subscriptions: CompositeDisposable
+
+  constructor (goconfig: GoConfig) {
     this.goconfig = goconfig
     this.subscriptions = new CompositeDisposable()
     this.subscriptions.add(atom.commands.add(
@@ -22,10 +40,9 @@ export default class GoModifyTags {
   dispose () {
     this.subscriptions.dispose()
     this.subscriptions = null
-    this.goconfig = null
   }
 
-  commandInvoked (mode) {
+  async commandInvoked (mode: Mode) {
     const editor = atom.workspace.getActiveTextEditor()
     if (!isValidEditor(editor)) {
       return
@@ -39,18 +56,19 @@ export default class GoModifyTags {
       })
       return
     }
-
-    return this.goconfig.locator.findTool('gomodifytags').then((cmd) => {
+    const cmd = await this.goconfig.locator.findTool('gomodifytags')
+    if (cmd) {
       const dialog = new TagsDialog({
         mode: mode
       })
-      dialog.onAccept = (options) => this.modifyTags(editor, options, mode, cmd)
+      const c: string = cmd
+      dialog.onAccept = (options) => this.modifyTags(editor, options, mode, c)
       dialog.attach()
-    })
+    }
   }
 
-  buildArgs (editor, options, mode) {
-    const {tags, useSnakeCase, sortTags} = options
+  buildArgs (editor: any, options: GoModifyTagsOptions, mode: Mode): Array<string> {
+    const {tags, transform, sortTags} = options
 
     // if there is a selection, use the -line flag,
     // otherwise just use the cursor offset (and apply modifications to entire struct)
@@ -65,16 +83,16 @@ export default class GoModifyTags {
       }
     } else {
       args.push('-offset')
-      args.push(this.editorByteOffset(editor))
+      args.push(this.editorByteOffset(editor).toString())
     }
 
     if (editor.isModified()) {
       args.push('-modified')
     }
 
-    if (!useSnakeCase) {
+    if (transform) {
       args.push('-transform')
-      args.push('camelcase')
+      args.push(transform)
     }
     if (sortTags) {
       args.push('-sort')
@@ -123,7 +141,7 @@ export default class GoModifyTags {
     return args
   }
 
-  modifyTags (editor, options, mode, cmd) {
+  async modifyTags (editor: any, options: GoModifyTagsOptions, mode: Mode, cmd: string) {
     const executorOptions = this.goconfig.executor.getOptions('file')
 
     if (editor.isModified()) {
@@ -135,33 +153,33 @@ export default class GoModifyTags {
     if (atom.inDevMode() && !atom.config.get('go-plus.testing')) {
       console.log('(go-plus): executing: gomodifytags ' + args.join(' '))
     }
-    return this.goconfig.executor.exec(cmd, args, executorOptions).then((r) => {
-      if (r.error) {
-        if (r.error && r.error.code === 'ENOENT') {
-          atom.notifications.addError('Missing Tool', {
-            detail: 'Missing the `gomodifytags` tool.',
-            dismissable: true
-          })
-        } else {
-          atom.notifications.addError('Error', {
-            detail: r.error.message,
-            dismissable: true
-          })
-        }
-        return {success: false, result: r}
-      } else if (r.exitcode !== 0) {
-        atom.notifications.addError('Error', {
-          detail: r.stderr.trim(),
+    const r = await this.goconfig.executor.exec(cmd, args, executorOptions)
+    if (r.error) {
+      if (r.error && r.error.code === 'ENOENT') {
+        atom.notifications.addError('Missing Tool', {
+          detail: 'Missing the `gomodifytags` tool.',
           dismissable: true
         })
-        return {success: false, result: r}
+      } else {
+        atom.notifications.addError('Error', {
+          detail: r.error.message,
+          dismissable: true
+        })
       }
-      editor.getBuffer().setTextViaDiff(r.stdout)
-      return {success: true, result: r}
-    })
+      return {success: false, result: r}
+    } else if (r.exitcode !== 0) {
+      const stderr = r.stderr instanceof Buffer ? r.stderr.toString() : r.stderr
+      atom.notifications.addError('Error', {
+        detail: stderr.trim(),
+        dismissable: true
+      })
+      return {success: false, result: r}
+    }
+    editor.getBuffer().setTextViaDiff(r.stdout)
+    return {success: true, result: r}
   }
 
-  editorByteOffset (editor) {
+  editorByteOffset (editor: any): number {
     const cursor = editor.getLastCursor()
     const range = cursor.getCurrentWordBufferRange()
     const middle = new Point(range.start.row, Math.floor((range.start.column + range.end.column) / 2))
@@ -170,3 +188,5 @@ export default class GoModifyTags {
     return Buffer.byteLength(text, 'utf8')
   }
 }
+
+export {GoModifyTags}

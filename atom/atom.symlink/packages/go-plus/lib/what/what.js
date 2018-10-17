@@ -1,11 +1,20 @@
-'use babel'
+// @flow
 
 import {CompositeDisposable} from 'atom'
 import {utf8OffsetForBufferPosition, isValidEditor, parseGoPosition} from './../utils'
 import {buildGuruArchive, computeArgs, adjustPositionForGuru} from './../guru-utils'
 
+import type {GoConfig} from './../config/service'
+
 class What {
-  constructor (goconfig) {
+  goconfig: GoConfig
+  running: bool
+  subscriptions: CompositeDisposable
+  cursorSubscriptions: CompositeDisposable
+  shouldDecorate: bool
+  currentEditorLayer: any
+
+  constructor (goconfig: GoConfig) {
     this.subscriptions = new CompositeDisposable()
     this.goconfig = goconfig
     this.running = false
@@ -25,7 +34,6 @@ class What {
     }
     this.subscriptions = null
     this.unsubscribeToCursorEvents()
-    this.goconfig = null
     this.running = false
   }
 
@@ -77,7 +85,7 @@ class What {
     }
   }
 
-  run (editor, pos, cursor, shouldDecorate) {
+  async run (editor: any, pos: any, cursor: any, shouldDecorate: bool) {
     if (this.running) {
       return
     }
@@ -91,67 +99,68 @@ class What {
 
     pos = adjustPositionForGuru(pos, editor)
     const offset = utf8OffsetForBufferPosition(pos, editor)
-    const args = computeArgs('what', {}, editor, offset)
-    const options = {timeout: 30000}
+    const args = computeArgs('what', null, editor, offset)
+    if (!args) {
+      return
+    }
+    const options = {}
+    options.timeout = 30000
     const archive = buildGuruArchive()
     if (archive && archive.length) {
       options.input = archive
       args.unshift('-modified')
     }
-    return this.goconfig.locator.findTool('guru').then((cmd) => {
-      if (!cmd) {
-        console.log('missing guru tool')
-        return
-      }
-      if (!this.goconfig) {
-        return
-      }
-      return this.goconfig.executor.exec(cmd, args, options).then((r) => {
-        if (r.exitcode !== 0) {
-          this.running = false
-          return
-        }
-        let result
-        try {
-          result = JSON.parse(r.stdout)
-        } catch (e) {
-          console.log(e)
-          this.running = false
-          return
-        }
+    const cmd = await this.goconfig.locator.findTool('guru')
+    if (!cmd) {
+      console.log('missing guru tool')
+      return
+    }
+    if (!this.goconfig) {
+      return
+    }
+    const r = await this.goconfig.executor.exec(cmd, args, options)
+    if (r.exitcode !== 0) {
+      this.running = false
+      return
+    }
+    let result
+    try {
+      const stdout = r.stdout instanceof Buffer ? r.stdout.toString() : r.stdout
+      result = JSON.parse(stdout)
+    } catch (e) {
+      console.log(e)
+      this.running = false
+      return
+    }
 
-        if (!result) {
-          this.running = false
-          return
-        }
+    if (!result) {
+      this.running = false
+      return
+    }
 
-        if (shouldDecorate && result) {
-          if (result.enclosing && result.enclosing.length && result.sameids && result.sameids.length) {
-            let length = 0
-            for (const enclosing of result.enclosing) {
-              if (enclosing.desc === 'identifier') {
-                length = enclosing.end - enclosing.start
-                break
-              }
-            }
-            this.currentEditorLayer = editor.addMarkerLayer()
-
-            for (const sameid of result.sameids) {
-              const parsed = parseGoPosition(sameid)
-              if (!parsed) {
-                continue
-              }
-              const start = [parsed.line - 1, parsed.column - 1]
-              this.currentEditorLayer.markBufferRange([start, [start[0], start[1] + length]], {invalidate: 'touch'})
-            }
-
-            editor.decorateMarkerLayer(this.currentEditorLayer, {type: 'highlight', class: 'sameid', onlyNonEmpty: true})
+    if (shouldDecorate && result) {
+      if (result.enclosing && result.enclosing.length && result.sameids && result.sameids.length) {
+        let length = 0
+        for (const enclosing of result.enclosing) {
+          if (enclosing.desc === 'identifier') {
+            length = enclosing.end - enclosing.start
+            break
           }
         }
-        this.running = false
-        return result
-      })
-    })
+        this.currentEditorLayer = editor.addMarkerLayer()
+
+        for (const sameid of result.sameids) {
+          const parsed = parseGoPosition(sameid)
+          if (parsed && typeof parsed.column === 'number' && typeof parsed.line === 'number') {
+            const start = [parsed.line - 1, parsed.column - 1]
+            this.currentEditorLayer.markBufferRange([start, [start[0], start[1] + length]], {invalidate: 'touch'})
+          }
+        }
+        editor.decorateMarkerLayer(this.currentEditorLayer, {type: 'highlight', class: 'sameid', onlyNonEmpty: true})
+      }
+    }
+    this.running = false
+    return result
   }
 }
 

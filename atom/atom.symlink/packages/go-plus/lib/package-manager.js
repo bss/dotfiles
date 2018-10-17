@@ -1,7 +1,11 @@
-'use babel'
+// @flow
 
 import os from 'os'
 import {CompositeDisposable} from 'atom'
+
+import type {GoConfig} from './config/service'
+import type {GoGet} from './get/service'
+import type {ToolChecker} from './tool-checker'
 
 const oldPackages = [
   'gofmt',
@@ -21,23 +25,33 @@ const bundledPackages = new Map([
   ['hyperclick', 'It enables alt-click for go to definition, and shift-alt-click to return to the prior location.'],
   ['go-debug', 'It allows you to interactively debug your go program and tests using delve.'],
   ['go-signature-statusbar', 'It shows function signature information in the status bar.'],
-  ['linter', 'It runs linters and displays lint results. Alternatively, you can use Facebook\'s Nuclide package instead of the linter package.']
+  ['atom-ide-ui', 'It provides IDE features and displays diagnostic messages.']
 ])
 
 const goTools = new Map([
   ['goimports', 'golang.org/x/tools/cmd/goimports'],
   ['gorename', 'golang.org/x/tools/cmd/gorename'],
   ['goreturns', 'github.com/sqs/goreturns'],
-  ['gocode', 'github.com/nsf/gocode'],
+  ['gocode', 'github.com/mdempsky/gocode'],
   ['gometalinter', 'github.com/alecthomas/gometalinter'],
   ['gogetdoc', 'github.com/zmb3/gogetdoc'],
+  ['goaddimport', 'github.com/zmb3/goaddimport'],
   ['godef', 'github.com/rogpeppe/godef'],
   ['guru', 'golang.org/x/tools/cmd/guru'],
-  ['gomodifytags', 'github.com/fatih/gomodifytags']
+  ['gomodifytags', 'github.com/fatih/gomodifytags'],
+  ['gopkgs', 'github.com/tpng/gopkgs']
 ])
 
 class PackageManager {
-  constructor (goconfig, goget) {
+  goconfig: GoConfig
+  goget: GoGet
+  willInstall: bool
+  willUninstall: bool
+  loaded: bool
+  subscriptions: CompositeDisposable
+  toolChecker: ToolChecker
+
+  constructor (goconfig: GoConfig, goget: any) {
     this.loaded = false
     this.goconfig = goconfig
     this.goget = goget
@@ -50,7 +64,6 @@ class PackageManager {
     const {ToolChecker} = require('./tool-checker')
     if (!this.toolChecker) {
       this.toolChecker = new ToolChecker(this.goconfig)
-      this.subscriptions.add(this.toolChecker)
     }
     this.toolChecker.checkForTools(Array.from(goTools.keys()))
     this.disableOldPackages()
@@ -79,9 +92,6 @@ class PackageManager {
     this.loaded = false
     this.willUninstall = false
     this.willInstall = true
-    this.goconfig = null
-    this.goget = null
-    this.toolChecker = null
   }
 
   disableOldPackages () {
@@ -109,6 +119,7 @@ class PackageManager {
           break
         }
       }
+
       if (disabled) {
         continue
       }
@@ -120,65 +131,64 @@ class PackageManager {
       return
     }
 
-    atom.packages.activatePackage('settings-view').then((pack) => {
-      if (!pack || !pack.mainModule) {
-        return
-      }
-      const settingsview = pack.mainModule.createSettingsView({uri: pack.mainModule.configUri})
-      const installPkg = (pkg) => {
-        console.log(`installing package ${pkg}`)
-        settingsview.packageManager.install({name: pkg}, (error) => {
-          if (!error) {
-            console.log(`the ${pkg} package has been installed`)
-            atom.notifications.addInfo(`Installed the ${pkg} package`)
-          } else {
-            let content = ''
-            if (error.stdout) {
-              content = error.stdout
-            }
-            if (error.stderr) {
-              content = content + os.EOL + error.stderr
-            }
-            content = content.trim()
-            atom.notifications.addError(content)
-            console.log(error)
+    const pack = atom.packages.activatePackage('settings-view')
+    if (!pack || !pack.mainModule) {
+      return
+    }
+    const settingsview = pack.mainModule.createSettingsView({uri: pack.mainModule.configUri})
+    const installPkg = (pkg) => {
+      console.log(`installing package ${pkg}`)
+      settingsview.packageManager.install({name: pkg}, (error) => {
+        if (!error) {
+          console.log(`the ${pkg} package has been installed`)
+          atom.notifications.addInfo(`Installed the ${pkg} package`)
+        } else {
+          let content = ''
+          if (error.stdout) {
+            content = error.stdout
           }
-        })
-      }
-      for (const [pkg, detail] of packages) {
-        const notification = atom.notifications.addInfo('go-plus', {
-          dismissable: true,
-          icon: 'cloud-download',
-          detail: 'Additional features are available via the ' + pkg + ' package. ' + detail,
-          description: 'Would you like to install ' + pkg + '?',
-          buttons: [{
-            text: 'Yes',
-            onDidClick: () => {
-              notification.dismiss()
-              installPkg(pkg)
+          if (error.stderr) {
+            content = content + os.EOL + error.stderr
+          }
+          content = content.trim()
+          atom.notifications.addError(content)
+          console.log(error)
+        }
+      })
+    }
+    for (const [pkg, detail] of packages) {
+      const notification = atom.notifications.addInfo('go-plus', {
+        dismissable: true,
+        icon: 'cloud-download',
+        detail: 'Additional features are available via the ' + pkg + ' package. ' + detail,
+        description: 'Would you like to install ' + pkg + '?',
+        buttons: [{
+          text: 'Yes',
+          onDidClick: () => {
+            notification.dismiss()
+            installPkg(pkg)
+          }
+        }, {
+          text: 'Not Now',
+          onDidClick: () => {
+            notification.dismiss()
+          }
+        }, {
+          text: 'Never',
+          onDidClick: () => {
+            notification.dismiss()
+            const disabledBundledPackages = atom.config.get('go-plus.disabledBundledPackages')
+            if (!disabledBundledPackages.includes('pkg')) {
+              disabledBundledPackages.push(pkg)
+              atom.config.set('go-plus.disabledBundledPackages', disabledBundledPackages)
             }
-          }, {
-            text: 'Not Now',
-            onDidClick: () => {
-              notification.dismiss()
-            }
-          }, {
-            text: 'Never',
-            onDidClick: () => {
-              notification.dismiss()
-              const disabledBundledPackages = atom.config.get('go-plus.disabledBundledPackages')
-              if (!disabledBundledPackages.includes('pkg')) {
-                disabledBundledPackages.push(pkg)
-                atom.config.set('go-plus.disabledBundledPackages', disabledBundledPackages)
-              }
-            }
-          }]
-        })
-      }
-    })
+          }
+        }]
+      })
+    }
   }
 
-  uninstallOldPackages () {
+  async uninstallOldPackages () {
     // remove old packages that have been merged into go-plus
     for (const pkg of oldPackages) {
       const p = atom.packages.getLoadedPackage(pkg)
@@ -186,105 +196,107 @@ class PackageManager {
         continue
       }
       console.log(`removing package ${pkg}`)
-      atom.packages.activatePackage('settings-view').then((pack) => {
-        if (pack && pack.mainModule) {
-          const settingsview = pack.mainModule.createSettingsView({uri: pack.mainModule.configUri})
-          settingsview.packageManager.uninstall({name: pkg}, (error) => {
-            if (!error) {
-              console.log(`the ${pkg} package has been uninstalled`)
-              atom.notifications.addInfo(`Removed the ${pkg} package, which is now provided by go-plus`)
-            } else {
-              console.log(error)
-            }
-          })
-        }
-      })
+      const pack = await atom.packages.activatePackage('settings-view')
+      if (pack && pack.mainModule) {
+        const settingsview = pack.mainModule.createSettingsView({uri: pack.mainModule.configUri})
+        settingsview.packageManager.uninstall({name: pkg}, (error) => {
+          if (!error) {
+            console.log(`the ${pkg} package has been uninstalled`)
+            atom.notifications.addInfo(`Removed the ${pkg} package, which is now provided by go-plus`)
+          } else {
+            console.log(error)
+          }
+        })
+      }
     }
   }
 
-  registerTools () {
+  async registerTools () {
     if (!this.goget || !this.subscriptions) {
       return
     }
     for (const [key, value] of goTools) {
       const packagePath = value
       if (key === 'gometalinter') {
-        this.subscriptions.add(this.goget.register(packagePath, (outcome, packs) => {
+        this.subscriptions.add(this.goget.register(packagePath, async (outcome, packs) => {
           if (!packs.includes(packagePath)) {
             return
           }
-          this.goconfig.locator.findTool('gometalinter').then((cmd) => {
-            if (!cmd) {
-              return
-            }
-            const notification = atom.notifications.addInfo('gometalinter', {
+          const cmd = await this.goconfig.locator.findTool('gometalinter')
+          if (!cmd) {
+            return
+          }
+          const notification = atom.notifications.addInfo('gometalinter', {
+            dismissable: true,
+            icon: 'cloud-download',
+            description: 'Running `gometalinter --install` to install tools.'
+          })
+          const opt = this.goconfig.executor.getOptions('project')
+          const r = await this.goconfig.executor.exec(cmd, ['--install'], opt)
+          notification.dismiss()
+          const stdout = r.stdout instanceof Buffer ? r.stdout.toString() : r.stdout
+          const stderr = r.stderr instanceof Buffer ? r.stderr.toString() : r.stderr
+          const detail = stdout + os.EOL + stderr
+
+          if (r.exitcode !== 0) {
+            atom.notifications.addWarning('gometalinter', {
               dismissable: true,
               icon: 'cloud-download',
-              description: 'Running `gometalinter --install` to install tools.'
+              detail: detail.trim()
             })
-            return this.goconfig.executor.exec(cmd, ['--install'], 'project').then((r) => {
-              notification.dismiss()
-              const detail = r.stdout + os.EOL + r.stderr
-
-              if (r.exitcode !== 0) {
-                atom.notifications.addWarning('gometalinter', {
-                  dismissable: true,
-                  icon: 'cloud-download',
-                  detail: detail.trim()
-                })
-                return r
-              }
-              if (r.stderr && r.stderr.trim() !== '') {
-                console.log('go-plus: (stderr) ' + r.stderr)
-              }
-              atom.notifications.addSuccess('gometalinter', {
-                dismissable: true,
-                icon: 'cloud-download',
-                detail: detail.trim(),
-                description: 'The tools were installed.'
-              })
-              return r
-            })
+            return r
+          }
+          if (stderr && stderr.trim() !== '') {
+            console.log('go-plus: (stderr) ' + stderr)
+          }
+          atom.notifications.addSuccess('gometalinter', {
+            dismissable: true,
+            icon: 'cloud-download',
+            detail: detail.trim(),
+            description: 'The tools were installed.'
           })
-        }))
+          return r
+        })
+        )
       } else if (key === 'gocode') {
-        this.subscriptions.add(this.goget.register(packagePath, (outcome, packs) => {
+        this.subscriptions.add(this.goget.register(packagePath, async (outcome, packs) => {
           if (!packs.includes(packagePath)) {
             return
           }
-          this.goconfig.locator.findTool('gocode').then((cmd) => {
-            if (!cmd) {
-              return
-            }
-            const notification = atom.notifications.addInfo('gocode', {
-              dismissable: true,
-              icon: 'cloud-download',
-              description: 'Running `gocode close` to ensure a new gocode binary is used.'
-            })
-            return this.goconfig.executor.exec(cmd, ['close'], 'project').then((r) => {
-              notification.dismiss()
-              const detail = r.stdout + os.EOL + r.stderr
-
-              if (r.exitcode !== 0) {
-                atom.notifications.addWarning('gocode', {
-                  dismissable: true,
-                  icon: 'sync',
-                  detail: detail.trim()
-                })
-                return r
-              }
-              if (r.stderr && r.stderr.trim() !== '') {
-                console.log('go-plus: (stderr) ' + r.stderr)
-              }
-              atom.notifications.addSuccess('gocode', {
-                dismissable: true,
-                icon: 'sync',
-                detail: detail.trim(),
-                description: 'The `gocode` daemon has been closed to ensure you are using the latest `gocode` binary.'
-              })
-              return r
-            })
+          const cmd = await this.goconfig.locator.findTool('gocode')
+          if (!cmd) {
+            return
+          }
+          const notification = atom.notifications.addInfo('gocode', {
+            dismissable: true,
+            icon: 'cloud-download',
+            description: 'Running `gocode close` to ensure a new gocode binary is used.'
           })
+          const opt = this.goconfig.executor.getOptions('project')
+          const r = await this.goconfig.executor.exec(cmd, ['close'], opt)
+          notification.dismiss()
+          const stdout = r.stdout instanceof Buffer ? r.stdout.toString() : r.stdout
+          const stderr = r.stderr instanceof Buffer ? r.stderr.toString() : r.stderr
+          const detail = stdout + os.EOL + stderr
+
+          if (r.exitcode !== 0) {
+            atom.notifications.addWarning('gocode', {
+              dismissable: true,
+              icon: 'sync',
+              detail: detail.trim()
+            })
+            return r
+          }
+          if (stderr && stderr.trim() !== '') {
+            console.log('go-plus: (stderr) ' + stderr)
+          }
+          atom.notifications.addSuccess('gocode', {
+            dismissable: true,
+            icon: 'sync',
+            detail: detail.trim(),
+            description: 'The `gocode` daemon has been closed to ensure you are using the latest `gocode` binary.'
+          })
+          return r
         }))
       } else {
         this.subscriptions.add(this.goget.register(packagePath))

@@ -1,68 +1,85 @@
+// @flow
 'use babel'
 
 import {CompositeDisposable, Disposable} from 'atom'
-import GoPlusPanel from './go-plus-panel'
+import GoPlusPanel, {PANEL_URI} from './go-plus-panel'
 import GoPlusStatusBar from './go-plus-status-bar'
 
+import type {PanelModel} from './tab'
+import type {GoConfig} from './../config/service'
+
+type IDisposable = {
+  dispose: () => void
+}
+
+type StatusBarTile = {
+  getPriority: () => number,
+  getItem: () => any,
+  destroy: () => void
+}
+
+type StatusBar = {
+  addLeftTile: ({item: any, priority: number}) => void,
+  addRightTile: ({item: any, priority: number}) => void,
+  getLeftTiles: Array<StatusBarTile>,
+  getRightTiles: Array<StatusBarTile>
+}
+
 class PanelManager {
-  constructor (statusBarFunc, goconfig) {
+  activeItem: string
+  item: {
+    element?: any,
+    getURI: () => string,
+    getTitle: () => string,
+    getIconName: () => string,
+    getDefaultLocation: () => string,
+    getAllowedLocations: () => string[]
+  }
+  subscriptions: CompositeDisposable
+  viewProviders: Map<string, {view: any, model: PanelModel}>
+  goPlusPanel: GoPlusPanel
+  statusBar: () => StatusBar | false
+  goconfig: GoConfig
+  goPlusStatusBar: GoPlusStatusBar
+  goPlusStatusBarTile: ?StatusBarTile
+
+  constructor (statusBarFunc: () => StatusBar | false) {
     this.statusBar = statusBarFunc
-    this.goconfig = goconfig
     this.activeItem = 'go'
+
+    this.item = {
+      getURI: () => PANEL_URI,
+      getTitle: () => 'go-plus',
+      getIconName: () => 'diff-added',
+      getDefaultLocation: () => 'bottom',
+      getAllowedLocations: () => [ 'right', 'left', 'bottom' ]
+    }
+
     this.subscriptions = new CompositeDisposable()
     this.viewProviders = new Map()
-    this.resizeSubscriptions = new CompositeDisposable()
-    this.initialized = false
-    this.activated = false
+
     this.subscribeToConfig()
-    this.panelDisplayMode = atom.config.get('go-plus.panel.displayMode')
-    this.panelVisible = false
-    if (this.panelDisplayMode === 'open') {
-      this.panelVisible = true
-    }
+
+    this.createPanel(atom.config.get('go-plus.panel.displayMode') === 'open')
     this.subscribeToCommands()
-    this.initialized = true
-    this.refreshPanel(atom.config.get('go-plus.panel.orientation'))
   }
 
-  setActivated () {
-    this.activated = true
-    this.refreshPanel(atom.config.get('go-plus.panel.orientation'))
-  }
-
-  refreshPanel (panelOrientation) {
-    if (!this.initialized | !this.activated) {
-      return
-    }
-    if (this.panelOrientation && panelOrientation && panelOrientation === this.panelOrientation) {
-      return
-    }
-
-    this.panelOrientation = panelOrientation
-    if (this.panel) {
-      this.panel.destroy()
-    }
+  createPanel (visible: bool): Promise<void> {
     if (this.goPlusPanel) {
       this.goPlusPanel.destroy()
     }
     this.goPlusPanel = new GoPlusPanel({model: this})
-    if (this.panelOrientation === 'horizontal') {
-      this.panel = atom.workspace.addFooterPanel({item: this.goPlusPanel, visible: this.panelVisible, priority: -1000})
-    } else {
-      this.panel = atom.workspace.addRightPanel({item: this.goPlusPanel, visible: this.panelVisible, priority: -1000})
-    }
-
-    this.requestUpdate()
+    this.item.element = this.goPlusPanel.element
+    return atom.workspace.open(this.item, {
+      activatePane: visible
+    }).then(() => this.requestUpdate())
   }
 
-  isVisible () {
-    return this.panelVisible
-  }
-
-  requestUpdate () {
-    if (this.goPlusPanel && this.initialized && this.activated) {
-      this.goPlusPanel.update()
+  requestUpdate (): Promise<void> {
+    if (this.goPlusPanel) {
+      return this.goPlusPanel.update()
     }
+    return Promise.resolve()
   }
 
   subscribeToConfig () {
@@ -75,42 +92,12 @@ class PanelManager {
     this.subscriptions.add(atom.config.observe('editor.lineHeight', (v) => {
       this.requestUpdate()
     }))
-    this.subscriptions.add(atom.config.observe('go-plus.panel.maxHeight', (maxPanelHeight) => {
-      this.maxPanelHeight = maxPanelHeight
-      this.requestUpdate()
-    }))
-    this.subscriptions.add(atom.config.observe('go-plus.panel.minHeight', (minPanelHeight) => {
-      this.minPanelHeight = minPanelHeight
-      this.requestUpdate()
-    }))
-    this.subscriptions.add(atom.config.observe('go-plus.panel.currentHeight', (currentPanelHeight) => {
-      this.currentPanelHeight = currentPanelHeight
-      this.requestUpdate()
-    }))
-    this.subscriptions.add(atom.config.observe('go-plus.panel.maxWidth', (maxPanelWidth) => {
-      this.maxPanelWidth = maxPanelWidth
-      this.requestUpdate()
-    }))
-    this.subscriptions.add(atom.config.observe('go-plus.panel.minWidth', (minPanelWidth) => {
-      this.minPanelWidth = minPanelWidth
-      this.requestUpdate()
-    }))
-    this.subscriptions.add(atom.config.observe('go-plus.panel.currentWidth', (currentPanelWidth) => {
-      this.currentPanelWidth = currentPanelWidth
-      this.requestUpdate()
-    }))
-    this.subscriptions.add(atom.config.observe('go-plus.panel.orientation', (panelOrientation) => {
-      this.refreshPanel(panelOrientation)
-    }))
   }
 
   subscribeToCommands () {
     if (!this.subscriptions) {
       return
     }
-    this.subscriptions.add(atom.commands.add('atom-workspace', 'core:cancel', () => {
-      this.hidePanel()
-    }))
     this.subscriptions.add(atom.commands.add('atom-workspace', 'golang:toggle-panel', () => {
       this.togglePanel()
     }))
@@ -121,38 +108,36 @@ class PanelManager {
       this.subscriptions.dispose()
     }
     this.subscriptions = null
-    if (this.panel) {
-      this.panel.destroy()
+
+    const pane = atom.workspace.paneForURI(PANEL_URI)
+    if (pane) {
+      pane.destroyItem(this.item)
     }
-    this.panel = null
+
     if (this.goPlusPanel) {
       this.goPlusPanel.destroy()
     }
     this.goPlusPanel = null
-    if (this.viewProviders) {
-      this.viewProviders.clear()
-    }
-    this.viewProviders = null
-    this.statusBar = null
+    this.viewProviders.clear()
+
     this.goPlusStatusBar = null
     if (this.goPlusStatusBarTile) {
       this.goPlusStatusBarTile.destroy()
     }
     this.goPlusStatusBarTile = null
-    this.goconfig = null
   }
 
-  registerViewProvider (view, model) {
+  registerViewProvider (view: any, model: PanelModel): IDisposable {
     if (!view || !model || !model.key) {
       return new Disposable()
     }
     const key = model.key
     model.requestFocus = () => {
       this.activeItem = key
-      return this.showPanel()
+      return this.togglePanel(true)
     }
     this.viewProviders.set(key, {view, model})
-    if (this.goPlusPanel && this.initialized && this.activated) {
+    if (this.goPlusPanel) {
       this.goPlusPanel.update()
     }
 
@@ -163,66 +148,62 @@ class PanelManager {
     })
   }
 
-  togglePanel () {
-    if (this.panelVisible) {
-      this.hidePanel()
-    } else {
-      this.showPanel()
-    }
-  }
-
-  hidePanel () {
-    if (!this.panel) {
-      return
+  togglePanel (visible?: bool): Promise<void> {
+    const container = atom.workspace.paneContainerForURI(PANEL_URI)
+    if (!container) {
+      return this.createPanel(true)
     }
 
-    this.panel.hide()
-    this.panelVisible = false
+    const pane = atom.workspace.paneForURI(PANEL_URI)
+    if (visible === undefined) {
+      const currentlyVisible = container.isVisible() && pane && pane.getActiveItem() === this.item
+      visible = !currentlyVisible
+    }
 
-    if (this.panel.item.props && this.panel.item.props.viewProviders) {
-      for (const {model} of this.panel.item.props.viewProviders.values()) {
-        if (model.isActive) {
-          model.isActive(false)
+    if (!visible) {
+      container.hide()
+      if (this.goPlusPanel.props && this.goPlusPanel.props.viewProviders) {
+        for (const {model} of this.goPlusPanel.props.viewProviders.values()) {
+          if (model.isActive) {
+            model.isActive(false)
+          }
         }
       }
+      return Promise.resolve()
     }
-  }
-
-  showPanel () {
-    if (!this.panel) {
-      return
-    }
-
-    this.panel.show()
-    this.panelVisible = true
+    container.show()
+    pane.activateItemForURI(PANEL_URI)
 
     if (this.goPlusPanel) {
       return this.goPlusPanel.update()
     } else {
-      return Promise.resovle()
+      return Promise.resolve()
     }
   }
 
   showStatusBar () {
-    if (this.goPlusStatusBar || !this.statusBar()) {
+    if (this.goPlusStatusBar) {
       return
     }
 
     this.goPlusStatusBar = new GoPlusStatusBar({
-      togglePanel: () => {
-        this.togglePanel()
-      }
+      togglePanel: () => { this.togglePanel() }
     })
+
     this.subscriptions.add(this.goPlusStatusBar)
 
     if (this.goPlusStatusBarTile) {
       this.goPlusStatusBarTile.destroy()
     }
 
-    this.goPlusStatusBarTile = this.statusBar().addRightTile({
-      item: this.goPlusStatusBar,
-      priority: 1000
-    })
+    const sb = this.statusBar()
+    if (sb) {
+      this.goPlusStatusBarTile = sb.addRightTile({
+        item: this.goPlusStatusBar,
+        priority: 1000
+      })
+    }
   }
 }
+
 export {PanelManager}

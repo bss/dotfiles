@@ -1,4 +1,4 @@
-'use babel'
+// @flow
 
 import path from 'path'
 import {CompositeDisposable, Point} from 'atom'
@@ -7,8 +7,28 @@ import {isValidEditor} from '../utils'
 import {buildGuruArchive} from '../guru-utils'
 import os from 'os'
 
+import type {GoConfig} from './../config/service'
+import type {ExecutorOptions} from './../config/executor'
+
+export type GogetdocResult = {
+  name: string,
+  import: string,
+  pkg: string,
+  decl: string,
+  doc: string,
+  pos: string,
+
+  gddo?: string // godoc.org link (we add this ourselves)
+}
+
 class Godoc {
-  constructor (goconfig) {
+  goconfig: GoConfig
+  subscriptions: CompositeDisposable
+  panelModel: GodocPanel
+  methodRegexp: RegExp
+  electedNotToUpdate: bool
+
+  constructor (goconfig: GoConfig) {
     this.goconfig = goconfig
     this.subscriptions = new CompositeDisposable()
     this.panelModel = new GodocPanel()
@@ -19,49 +39,33 @@ class Godoc {
     this.methodRegexp = /(?:^func \(\w+ \**)(\w+)/
   }
 
-  commandInvoked () {
+  async commandInvoked () {
     const editor = atom.workspace.getActiveTextEditor()
     if (!isValidEditor(editor)) {
       return
     }
 
-    return this.checkForTool(editor).then((cmd) => {
-      if (!cmd) {
-        // TODO: notification?
-        return {success: false, result: null}
-      }
-      const file = editor.getBuffer().getPath()
-      const cwd = path.dirname(file)
-      const offset = this.editorByteOffset(editor)
-
-      // package up unsaved buffers in the Guru archive format
-      const archive = buildGuruArchive()
-      return this.getDoc(file, offset, cwd, cmd, archive)
-    })
-  }
-
-  checkForTool (editor) {
-    if (!this.goconfig) {
-      return Promise.resolve(false)
+    const cmd = await this.goconfig.locator.findTool('gogetdoc')
+    if (!cmd) {
+      // TODO: notification?
+      return {success: false, result: null}
     }
 
-    return this.goconfig.locator.findTool('gogetdoc').then((cmd) => {
-      if (cmd) {
-        return cmd
-      }
-      return false
-    })
+    const file = editor.getBuffer().getPath()
+    const cwd = path.dirname(file)
+    const offset = this.editorByteOffset(editor)
+
+    // package up unsaved buffers in the Guru archive format
+    const archive = buildGuruArchive()
+    return this.getDoc(file, offset, cwd, cmd, archive)
   }
 
   dispose () {
     this.subscriptions.dispose()
     this.subscriptions = null
-    this.goconfig = null
-    this.panelModel = null
-    this.methodRegexp = null
   }
 
-  getDoc (file, offset, cwd, cmd, stdin) {
+  async getDoc (file: string, offset: number, cwd: string, cmd: string, stdin: string) {
     if (!this.goconfig || !this.goconfig.executor) {
       return {success: false, result: null}
     }
@@ -69,60 +73,60 @@ class Godoc {
     // use a large line length because Atom will wrap the paragraphs automatically
     const args = ['-pos', `${file}:#${offset}`, '-linelength', '999', '-json']
 
-    const options = {cwd: cwd}
+    const options: ExecutorOptions = {}
+    options.cwd = cwd
     if (stdin && stdin !== '') {
       args.push('-modified')
       options.input = stdin
     }
     this.panelModel.updateMessage('Generating documentation...')
-    return this.goconfig.executor.exec(cmd, args, options).then((r) => {
-      if (r.error) {
-        if (r.error.code === 'ENOENT') {
-          atom.notifications.addError('Missing Tool', {
-            detail: 'Missing the `gogetdoc` tool.',
-            dismissable: true
-          })
+    const r = await this.goconfig.executor.exec(cmd, args, options)
+    if (r.error) {
+      if (r.error.code === 'ENOENT') {
+        atom.notifications.addError('Missing Tool', {
+          detail: 'Missing the `gogetdoc` tool.',
+          dismissable: true
+        })
+      } else {
+        atom.notifications.addError('Error', {
+          detail: r.error.message,
+          dismissable: true
+        })
+      }
+      return {success: false, result: r}
+    }
+    const stderr = r.stderr instanceof Buffer ? r.stderr.toString() : r.stderr
+    const stdout = r.stdout instanceof Buffer ? r.stdout.toString() : r.stdout
+    if (r.exitcode !== 0 || (stderr && stderr.trim() !== '')) {
+      this.panelModel.updateMessage(stdout.trim() + os.EOL + stderr.trim())
+      return {success: false, result: r}
+    }
+
+    const doc: GogetdocResult = JSON.parse(stdout.trim())
+    if (doc) {
+      if (doc.decl.startsWith('package')) {
+        // older versions of gogetdoc didn't populate the import property
+        // for packages - prompt user to update
+        if (!doc.import || !doc.import.length) {
+          this.promptForToolsUpdate()
         } else {
-          atom.notifications.addError('Error', {
-            detail: r.error.message,
-            dismissable: true
-          })
+          doc.gddo = 'https://godoc.org/' + doc.import
         }
-
-        return {success: false, result: r}
-      }
-
-      if (r.exitcode !== 0 || (r.stderr && r.stderr.trim() !== '')) {
-        this.panelModel.updateMessage(r.stdout.trim() + os.EOL + r.stderr.trim())
-        return {success: false, result: r}
-      }
-
-      const doc = JSON.parse(r.stdout.trim())
-      if (doc) {
-        if (doc.decl.startsWith('package')) {
-          // older versions of gogetdoc didn't populate the import property
-          // for packages - prompt user to update
-          if (!doc.import || !doc.import.length) {
-            this.promptForToolsUpdate()
-          } else {
-            doc.gddo = 'https://godoc.org/' + doc.import
-          }
+      } else {
+        const typ = this.declIsMethod(doc.decl)
+        if (typ) {
+          doc.gddo = 'https://godoc.org/' + doc.import + '#' + typ + '.' + doc.name
         } else {
-          const typ = this.declIsMethod(doc.decl)
-          if (typ) {
-            doc.gddo = 'https://godoc.org/' + doc.import + '#' + typ + '.' + doc.name
-          } else {
-            doc.gddo = 'https://godoc.org/' + doc.import + '#' + doc.name
-          }
+          doc.gddo = 'https://godoc.org/' + doc.import + '#' + doc.name
         }
-        this.panelModel.updateContent(doc)
       }
+      this.panelModel.updateContent(doc)
+    }
 
-      return {success: true, result: r, doc: doc}
-    })
+    return {success: true, result: r, doc: doc}
   }
 
-  declIsMethod (decl) {
+  declIsMethod (decl: string): ?string {
     // func (receiver Type) Name(Args...) -> return Type
     // func Name(Args...) -> return undefined
     const matches = this.methodRegexp.exec(decl)
@@ -138,7 +142,7 @@ class Godoc {
     }
     this.electedNotToUpdate = true
 
-    const notification = atom.notifications.addWarning('Go-Plus', {
+    const notification = atom.notifications.addWarning('go-plus', {
       dismissable: true,
       detail: '`gogetdoc` may be out of date',
       description: 'Your `gogetdoc` tool may be out of date.' + os.EOL + os.EOL + 'Would you like to run `go get -u github.com/zmb3/gogetdoc` to update?',
@@ -157,7 +161,7 @@ class Godoc {
     })
   }
 
-  editorByteOffset (editor) {
+  editorByteOffset (editor: any): number {
     const cursor = editor.getLastCursor()
     const range = cursor.getCurrentWordBufferRange()
     const middle = new Point(range.start.row, Math.floor((range.start.column + range.end.column) / 2))

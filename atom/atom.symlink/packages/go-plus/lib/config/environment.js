@@ -1,18 +1,20 @@
+// @flow
 'use babel'
 
 import pathhelper from './pathhelper'
 import path from 'path'
 
-const getenvironment = () => {
+const getenvironment = (): {[string]: ?string} => {
   const e = Object.assign({}, process.env)
   const g = getgopath()
   if (g) {
     e.GOPATH = g
   }
+  e.GINKGO_EDITOR_INTEGRATION = 'true'
   return e
 }
 
-const getgopath = () => {
+const getgopath = (): string => {
   // Preferred: The Environment
   let g = process.env.GOPATH
   if (g && g.trim() !== '') {

@@ -1,3 +1,34 @@
+## 0.12.1
+
+* Forgot to update the changelog before publishing
+
+## 0.12.0
+
+* Add highlighting for focus and filter keywords  (#54)
+
+## 0.11.0
+
+* Update regex for should/should_not (#52)
+
+## 0.10.0
+
+* Fix the broken `it` and `its` snippets (#50)
+* Improve the `des` and `it` autocompletion snippet names (#51)
+
+## 0.9.0
+
+* Fix wrong syntax highlight with `context` or `describe` and escaped quote (#42)
+* Fix the escape character and interpolation grammar for string literals with "" delimitors (#49)
+
+## 0.8.0
+
+* Fix duplicate key issue (#46)
+* Add cohesion to "it" snippet keys (#48)
+
+## 0.7.0
+
+* New snippets (#45)
+
 ## 0.6.2
 
 * Highlight eq and equal (#43)

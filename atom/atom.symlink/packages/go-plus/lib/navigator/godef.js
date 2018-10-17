@@ -1,4 +1,4 @@
-'use babel'
+// @flow
 
 import {CompositeDisposable, Point} from 'atom'
 import {adjustPositionForGuru, buildGuruArchive} from '../guru-utils'
@@ -7,8 +7,21 @@ import {NavigationStack} from './navigation-stack'
 import fs from 'fs'
 import path from 'path'
 
+import type {Disposable} from 'atom'
+import type {GoConfig} from './../config/service'
+import type {ExecResult} from './../config/executor'
+import type {DefLocation} from './definition-types'
+
 class Godef {
-  constructor (goconfig) {
+  goconfig: GoConfig
+  godefCommand: string
+  returnCommand: string
+  navigationStack: NavigationStack
+  subscriptions: CompositeDisposable
+  disposed: bool
+  cursorOnChangeSubscription: Disposable
+
+  constructor (goconfig: GoConfig) {
     this.goconfig = goconfig
     this.godefCommand = 'golang:godef'
     this.returnCommand = 'golang:godef-return'
@@ -34,14 +47,13 @@ class Godef {
       this.subscriptions.dispose()
     }
     this.subscriptions = null
-    this.goconfig = null
   }
 
   clearReturnHistory () {
     this.navigationStack.reset()
   }
 
-  gotoDefinitionForWordAtCursor () {
+  gotoDefinitionForWordAtCursor (): Promise<any> {
     const editor = getEditor()
     if (!editor) {
       return Promise.resolve(false)
@@ -56,100 +68,89 @@ class Godef {
       return Promise.resolve(false)
     }
 
-    return Promise.resolve().then(() => {
-      if (this.cursorOnChangeSubscription) {
-        this.cursorOnChangeSubscription.dispose()
-        this.cursorOnChangeSubscription = null
-      }
-      return this.gotoDefinitionForBufferPosition(editor.getCursorBufferPosition())
-    })
+    if (this.cursorOnChangeSubscription) {
+      this.cursorOnChangeSubscription.dispose()
+      this.cursorOnChangeSubscription = null
+    }
+
+    return this.gotoDefinitionForBufferPosition(editor.getCursorBufferPosition())
   }
 
-  gotoDefinitionForBufferPosition (pos, editor = getEditor()) {
+  async gotoDefinitionForBufferPosition (pos: [number, number], editor: any = getEditor()): Promise<any> {
     if (!editor || !pos) {
       return false
     }
-    const tool = atom.config.get('go-plus.navigator.mode')
-    let prom
-    if (tool === 'guru') {
-      prom = this.gotoDefinitionGuru(pos, editor)
-    } else {
-      prom = this.gotoDefinitionGodef(pos, editor)
-    }
-    return prom.then((r) => {
+    try {
+      const tool = atom.config.get('go-plus.navigator.mode')
+      const r = tool === 'guru'
+        ? await this.gotoDefinitionGuru(pos, editor)
+        : await this.gotoDefinitionGodef(pos, editor)
       if (!r) {
         return r
       }
-
-      if (r.stderr && r.stderr.trim() !== '') {
-        console.log(tool + ': (stderr) ' + r.stderr)
+      const stderr = r.stderr instanceof Buffer ? r.stderr.toString() : r.stderr
+      if (stderr && stderr.trim() !== '') {
+        console.log(tool + ': (stderr) ' + stderr)
       }
 
       if (r.exitcode !== 0) {
         atom.notifications.addError('go-plus', {
           dismissable: false,
           icon: 'location',
-          detail: r.stderr.trim()
+          detail: stderr.trim()
         })
         return false
       }
 
-      if (tool === 'guru') {
-        return this.visitLocation(this.parseGuruLocation(r.stdout))
-      }
-      return this.visitLocation(this.parseGodefLocation(r.stdout))
-    }).catch((e) => {
+      const stdout = r.stdout instanceof Buffer ? r.stdout.toString() : r.stdout
+      return tool === 'guru'
+        ? this.visitLocation(this.parseGuruLocation(stdout))
+        : this.visitLocation(this.parseGodefLocation(stdout))
+    } catch (e) {
       console.log(e)
       return false
-    })
+    }
   }
 
-  gotoDefinitionGuru (pos, editor) {
+  async gotoDefinitionGuru (pos: [number, number], editor: any): Promise<ExecResult | false> {
     if (!editor || !pos) {
-      return
+      return false
+    }
+    const cmd = await this.goconfig.locator.findTool('guru')
+    if (!cmd) {
+      return false
+    }
+    const filepath = editor.getPath()
+    const archive = buildGuruArchive()
+
+    const options = this.goconfig.executor.getOptions('file')
+    if (archive && archive !== '') {
+      options.input = archive
     }
 
-    return this.goconfig.locator.findTool('guru').then((cmd) => {
-      if (!cmd) {
-        return false
-      }
-
-      const filepath = editor.getPath()
-      const archive = buildGuruArchive()
-
-      const options = this.goconfig.executor.getOptions('file')
-      if (archive && archive !== '') {
-        options.input = archive
-      }
-
-      pos = adjustPositionForGuru(pos, editor)
-      const offset = utf8OffsetForBufferPosition(pos, editor)
-      const args = ['-json', 'definition', filepath + ':#' + offset]
-      if (archive && archive !== '') {
-        args.unshift('-modified')
-      }
-
-      return this.goconfig.executor.exec(cmd, args, options)
-    })
+    pos = adjustPositionForGuru(pos, editor)
+    const offset = utf8OffsetForBufferPosition(pos, editor)
+    const args = ['-json', 'definition', filepath + ':#' + offset]
+    if (archive && archive !== '') {
+      args.unshift('-modified')
+    }
+    return this.goconfig.executor.exec(cmd, args, options)
   }
 
-  gotoDefinitionGodef (pos, editor) {
-    return this.goconfig.locator.findTool('godef').then((cmd) => {
-      if (!cmd) {
-        return
-      }
-
-      const offset = utf8OffsetForBufferPosition(pos, editor)
-      const filepath = editor.getPath()
-      const args = ['-f', filepath, '-o', offset, '-i']
-      const options = this.goconfig.executor.getOptions('file')
-      options.input = editor.getText()
-
-      return this.goconfig.executor.exec(cmd, args, options)
-    })
+  async gotoDefinitionGodef (pos: [number, number], editor: any): Promise<ExecResult | false> {
+    const cmd = await this.goconfig.locator.findTool('godef')
+    if (!cmd) {
+      return false
+    }
+    const offset = utf8OffsetForBufferPosition(pos, editor)
+    const filepath = editor.getPath()
+    const args = ['-f', filepath, '-o', offset.toString(), '-i']
+    const options = this.goconfig.executor.getOptions('file')
+    options.input = editor.getText()
+    return this.goconfig.executor.exec(cmd, args, options)
   }
 
-  parseGuruLocation (stdout) {
+  parseGuruLocation (stdout: string): DefLocation | null {
     let output
     try {
       output = JSON.parse(stdout)
@@ -158,25 +159,24 @@ class Godef {
     }
 
     if (!output || !output.objpos) {
-      return
+      return null
     }
 
     const parsed = parseGoPosition(output.objpos.trim())
     if (!parsed) {
-      return
+      return null
     }
-    const result = {
-      filepath: parsed.file,
-      raw: stdout
-    }
+    const result = {}
+    result.filepath = parsed.file
+    result.raw = stdout
 
     if (parsed.line !== false && parsed.column !== false) {
-      result.pos = new Point(parsed.line - 1, parsed.column - 1)
+      result.pos = new Point(parseInt(parsed.line) - 1, parseInt(parsed.column) - 1)
     }
     return result
   }
 
-  parseGodefLocation (godefStdout) {
+  parseGodefLocation (godefStdout: string): DefLocation | null {
     // TODO: Look into using parseGoPosition
     const outputs = godefStdout.trim().split(':')
     let colNumber = 0
@@ -201,10 +201,9 @@ class Godef {
       return parseInt(rawPosition, 10) - 1
     }
 
-    const result = {
-      filepath: targetFilePath,
-      raw: godefStdout
-    }
+    const result = {}
+    result.filepath = targetFilePath
+    result.raw = godefStdout
 
     if (rowNumber && colNumber) {
       result.pos = new Point(p(rowNumber), p(colNumber))
@@ -212,51 +211,52 @@ class Godef {
     return result
   }
 
-  visitLocation (loc) {
+  async visitLocation (loc: DefLocation | null) {
     if (!loc || !loc.filepath) {
-      let opts = {
-        dismissable: true,
-        icon: 'location',
-        detail: 'godef returned malformed output'
-      }
+      const opts = {}
+      opts.dismissable = true
+      opts.icon = 'location'
+      opts.detail = 'definition tool returned malformed output'
+
       if (loc) {
         opts.description = JSON.stringify(loc.raw)
       }
       atom.notifications.addWarning('go-plus', opts)
       return false
     }
-
-    return stat(loc.filepath).then((stats) => {
+    try {
+      const l: DefLocation = loc
+      const stats = await stat(loc.filepath)
       this.navigationStack.pushCurrentLocation()
       if (stats.isDirectory()) {
-        return this.visitDirectory(loc)
+        return this.visitDirectory(l)
       } else {
-        return this.visitFile(loc)
+        return this.visitFile(l)
       }
-    }, () => {
+    } catch (e) {
       atom.notifications.addWarning('go-plus', {
         dismissable: true,
         icon: 'location',
-        detail: 'godef returned invalid file path',
+        detail: 'definition tool returned invalid file path',
         description: loc.filepath
       })
       return false
-    })
+    }
   }
 
-  visitFile (loc) {
-    const { pos } = loc
-    return openFile(loc.filepath, pos).then((editor) => {
-      if (pos) {
-        this.cursorOnChangeSubscription = this.highlightWordAtCursor(editor)
-      }
-    })
+  async visitFile (loc: DefLocation): Promise<void> {
+    const editor = await openFile(loc.filepath, loc.pos)
+    if (loc.pos) {
+      this.cursorOnChangeSubscription = this.highlightWordAtCursor(editor)
+    }
   }
 
-  visitDirectory (loc) {
-    return this.findFirstGoFile(loc.filepath).then((file) => {
-      return this.visitFile({filepath: file, raw: loc.raw})
-    }).catch((err) => {
+  async visitDirectory (loc: DefLocation): Promise<void> {
+    try {
+      const file = await this.findFirstGoFile(loc.filepath)
+      loc.filepath = file
+      return this.visitFile(loc)
+    } catch (err) {
       if (err.handle) {
         err.handle()
       }
@@ -266,10 +266,10 @@ class Godef {
         detail: 'godef return invalid directory',
         description: loc.filepath
       })
-    })
+    }
   }
 
-  findFirstGoFile (dir) {
+  findFirstGoFile (dir: string): Promise<string> {
     return new Promise((resolve, reject) => {
       fs.readdir(dir, (err, files) => {
         if (err) {
@@ -286,15 +286,16 @@ class Godef {
     })
   }
 
-  firstGoFilePath (dir, files) {
+  firstGoFilePath (dir: string, files: Array<string>): string | null {
     for (const file of files) {
       if (file.endsWith('.go') && (file.indexOf('_test') === -1)) {
         return path.join(dir, file)
       }
     }
+    return null
   }
 
-  wordAtCursor (editor = this.editor) {
+  wordAtCursor (editor: any): {word: string, range: any} {
     const options = {
       wordRegex: /[\w+.]*/
     }
@@ -305,7 +306,7 @@ class Godef {
     return {word: word, range: range}
   }
 
-  highlightWordAtCursor (editor = this.editor) {
+  highlightWordAtCursor (editor: any) {
     const {range} = this.wordAtCursor(editor)
     const marker = editor.markBufferRange(range, {invalidate: 'inside'})
     editor.decorateMarker(marker, {type: 'highlight', class: 'definition'})

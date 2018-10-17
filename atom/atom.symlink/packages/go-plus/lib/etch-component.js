@@ -1,4 +1,7 @@
-/** @babel */
+// @flow
+
+'use babel'
+
 /** @jsx etch.dom */
 
 import etch from 'etch'
@@ -8,7 +11,11 @@ import etch from 'etch'
   boilerplate of an Etch component.
 */
 export default class EtchComponent {
-  constructor (props) {
+  props: any
+  refs: Object
+  element: HTMLElement
+
+  constructor (props: Object) {
     this.props = props
 
     etch.initialize(this)
@@ -29,7 +36,7 @@ export default class EtchComponent {
 
     * `scheduler` {Scheduler}
   */
-  static setScheduler (scheduler) {
+  static setScheduler (scheduler: any) {
     etch.setScheduler(scheduler)
   }
 
@@ -40,13 +47,13 @@ export default class EtchComponent {
 
     * `props` an {Object} representing the properties you want to update
   */
-  update (props) {
+  update (props: any = {}) {
     const oldProps = this.props
     this.props = Object.assign({}, oldProps, props)
     return etch.update(this)
   }
 
-  updateSync (props) {
+  updateSync (props: any = {}) {
     const oldProps = this.props
     this.props = Object.assign({}, oldProps, props)
     return etch.updateSync(this)
@@ -55,7 +62,7 @@ export default class EtchComponent {
   /*
     Public: Destroys the component, removing it from the DOM.
   */
-  destroy (removeNode = false) {
+  destroy (removeNode: bool = false) {
     etch.destroy(this, removeNode)
   }
 
