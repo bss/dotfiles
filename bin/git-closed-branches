@@ -1,0 +1,28 @@
+#!/usr/bin/env python2
+
+import sys
+import github
+import argparse
+import subprocess
+
+def non_merged_branches():
+    return [b.strip() for b in subprocess.check_output(['git', 'branch', '--no-merge']).split('\n') if b != '']
+
+def main():
+    api = github.Github("bss", "2b847052f65d3f57e062ee2f2c8e3aa249e9610f")
+    start = False
+    for branch in non_merged_branches():
+        if branch == 'bss-stop-mocking-gusto-s3':
+            start = True
+        if not start:
+            continue
+        ref = subprocess.check_output(['git', 'rev-parse', branch]).strip()
+
+        res = api.search_issues(ref)
+        issue_states = [issue.state == 'closed' for issue in res]
+
+        if issue_states and all(issue_states):
+            print "%s (%s)" % (branch, ref)
+
+if __name__ == '__main__':
+    main()
