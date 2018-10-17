@@ -6,8 +6,9 @@ Host *
      AddKeysToAgent yes
      IdentityFile ~/.ssh/id_rsa
      Compression yes
-     CompressionLevel 7
+#     CompressionLevel 7
 #     Cipher blowfish
      ServerAliveInterval 600
-     ControlMaster auto
-     ControlPath ~/.ssh/tmp/ssh-%r@%h:%p
+#     ControlMaster auto
+#     ControlPath ~/.ssh/tmp/ssh-%r@%h:%p
+
