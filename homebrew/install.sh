@@ -18,7 +18,5 @@ brew install grc coreutils spark gcc git
 # Install homebrew cask for ui packages
 brew tap caskroom/cask
 
-# User-defined packages
-brew install phantomjs
 
 exit 0

@@ -18,3 +18,11 @@ fail () {
   exit
 }
 
+validation_prompt() {
+  confirm=''
+
+  until [[ $confirm =~ [Yy] ]]; do
+    echo "${1:-Ready to continue?}[y/N]"
+    read confirm
+  done
+}

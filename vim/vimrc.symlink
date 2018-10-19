@@ -196,4 +196,6 @@ set fillchars+=stl:\ ,stlnc:\
 set term=xterm-256color
 set termencoding=utf-8
 
+" Map // to search for selected text
+vnoremap // y/\V<C-r>=escape(@",'/\')<CR><CR>
 

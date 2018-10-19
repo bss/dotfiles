@@ -11,7 +11,7 @@ function cask_install () {
 	if [ $? -ne 0 ]; then
 		echo "$1 is already installed"
 	else
-		brew cask install --force --appdir="/Applications" "$1"
+		brew cask install "$1"
 	fi
 }
 
@@ -30,7 +30,7 @@ cask_install "atom"
 
 # Productivity & tools
 #cask_install "evernote"
-cask_install "iterm2"
+#cask_install "iterm2"
 #cask_install "skype"
 #cask_install "dropbox"
 #cask_install "hipchat"

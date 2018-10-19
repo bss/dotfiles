@@ -42,10 +42,10 @@ done
 unset config_files
 
 # Custom stuff
-bindkey -e
-bindkey '^[f' forward-word
-bindkey '^[b' backward-word
-bindkey '\e[3~' delete-char
+bindkey -v
+#bindkey '^[f' forward-word
+#bindkey '^[b' backward-word
+#bindkey '\e[3~' delete-char
 #bindkey '\e H' beginning-of-line
 #bindkey '\e F' end-of-line
 
