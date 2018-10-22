@@ -26,3 +26,15 @@ validation_prompt() {
     read confirm
   done
 }
+
+cask_install() {
+  echo "dafuk?"
+	if ! brew cask info "$1" | grep -i "not installed" > /dev/null; then
+#	if [ $? -ne 0 ]; then
+		info "$1 is already installed"
+	else
+	  brew cask install "$1"
+    success "Installed $1"
+	fi
+}
+

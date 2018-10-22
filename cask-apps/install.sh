@@ -1,19 +1,18 @@
-#!/bin/sh
+#!/usr/bin/env bash
 #
 # GUI Apps
 #
 # This installs common GUI apps using homebrew cask
 
+cd "$(dirname "$0")/.."
+DOTFILES_ROOT=$(pwd)
+
+set -e
+
+source "$DOTFILES_ROOT/utils.sh"
+
 # Install a cask if it is not already installed. 
 # Updates should be done through "brew cask update"
-function cask_install () {
-	brew cask info "$1" | grep -i "not installed" > /dev/null
-	if [ $? -ne 0 ]; then
-		echo "$1 is already installed"
-	else
-		brew cask install "$1"
-	fi
-}
 
 # Browsers
 #cask_install "google-chrome"
@@ -39,7 +38,6 @@ cask_install "atom"
 cask_install "flux"
 
 cask_install "spotify"
-cask_install "karabiner-elements"
 
 cask_install "sequel-pro"
 
