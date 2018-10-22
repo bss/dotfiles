@@ -43,6 +43,7 @@ unset config_files
 
 # Custom stuff
 bindkey -v
+bindkey "^R" history-incremental-pattern-search-backward
 #bindkey '^[f' forward-word
 #bindkey '^[b' backward-word
 #bindkey '\e[3~' delete-char
