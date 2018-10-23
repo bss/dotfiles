@@ -156,6 +156,38 @@ let g:unite_force_overwrite_statusline = 0
 let g:vimfiler_force_overwrite_statusline = 0
 let g:vimshell_force_overwrite_statusline = 0
 
+" Use git to list files in CtrlP when in git
+let g:ctrlp_user_command = ['.git', 'cd %s && git ls-files']
+
+" Use Ctrl-cmatcher
+let g:ctrlp_match_func = {'match' : 'matcher#cmatch' }
+
+
+" Expand some Gusto terms:
+"   esf -> employee_state_field
+"   csf -> company_state_field
+"   sfr -> state_filing_requirement
+let g:ctrlp_abbrev = {
+    \ 'gmode': 'i',
+    \ 'abbrevs': [
+      \ {
+        \ 'pattern': '^esf',
+        \ 'expanded': 'employee_state_field',
+        \ 'mode': 'pfrz',
+      \ },
+      \ {
+        \ 'pattern': '^csf',
+        \ 'expanded': 'company_state_field',
+        \ 'mode': 'pfrz',
+      \ },
+      \ {
+        \ 'pattern': '^sfr',
+        \ 'expanded': 'state_filing_requirement',
+        \ 'mode': 'pfrz',
+      \ },
+      \ ]
+    \ }
+
 " Other
 " --------------------------------
 "  Next/prev tab

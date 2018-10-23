@@ -38,3 +38,9 @@
 	path = fonts/fonts
 	url = https://github.com/powerline/fonts.git
 	branch = master
+[submodule "vim/vim.symlink/bundle/command-t"]
+	path = vim/vim.symlink/bundle/command-t
+	url = https://github.com/wincent/command-t.git
+[submodule "vim/vim.symlink/bundle/ctrlp-cmatcher"]
+	path = vim/vim.symlink/bundle/ctrlp-cmatcher
+	url = https://github.com/JazzCore/ctrlp-cmatcher.git
