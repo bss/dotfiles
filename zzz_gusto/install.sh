@@ -19,7 +19,7 @@ setup_host_in_hosts_file() {
 
 brew cask list | egrep 'java$' >/dev/null || brew cask install java
 brew cask install homebrew/cask-versions/java8
-brew install imagemagick@6 ghostscript graphicsmagick poppler ghostscript tesseract lbzip2 elasticsearch mysql@5.7 redis
+brew install imagemagick@6 ghostscript graphicsmagick poppler ghostscript tesseract lbzip2 elasticsearch mysql@5.7 redis nvm
 brew cask install phantomjs
 success 'Installing dependencies'
 
@@ -39,6 +39,9 @@ success 'Starting mysql'
 sudo brew services start redis
 success 'Starting redis'
 
+source "/usr/local/opt/nvm/nvm.sh"
+nvm install "$(nvm ls-remote | tail -n 1 | tr -d '[:space:]')"
+success 'Installed latest node version'
 
 setup_host_in_hosts_file 'gusto-dev.com'
 setup_host_in_hosts_file 'manage.gusto-dev.com'
