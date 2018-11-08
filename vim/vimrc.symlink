@@ -16,9 +16,6 @@ let g:vim_markdown_folding_disabled=1
 
 " NERDtree
 " ---------------------------------
-"  Start up NERDtree automatically when no files are specified
-"autocmd StdinReadPre * let s:std_in=1
-"autocmd VimEnter * if argc() == 0 && !exists("s:std_in") | NERDTree | endif
 
 " Toggle Nerdtree on Ctrl+k+b
 map <C-k><C-b> :NERDTreeToggle<CR>
@@ -159,8 +156,10 @@ let g:vimshell_force_overwrite_statusline = 0
 " Use git to list files in CtrlP when in git
 let g:ctrlp_user_command = ['.git', 'cd %s && git ls-files']
 
-" Use Ctrl-cmatcher
-let g:ctrlp_match_func = {'match' : 'matcher#cmatch' }
+if !has("gui_macvim")
+  " Use Ctrl-cmatcher
+  let g:ctrlp_match_func = {'match' : 'matcher#cmatch' }
+end
 
 
 " Expand some Gusto terms:
@@ -187,6 +186,9 @@ let g:ctrlp_abbrev = {
       \ },
       \ ]
     \ }
+
+" Use mixed mode by default for CtrlP
+let g:ctrlp_cmd = 'CtrlPMixed'
 
 " Other
 " --------------------------------
@@ -227,6 +229,10 @@ set t_Co=256
 set fillchars+=stl:\ ,stlnc:\
 set term=xterm-256color
 set termencoding=utf-8
+
+"  Split more naturally
+set splitbelow
+set splitright
 
 " Map // to search for selected text
 vnoremap // y/\V<C-r>=escape(@",'/\')<CR><CR>
