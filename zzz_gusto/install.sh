@@ -15,6 +15,12 @@ setup_host_in_hosts_file() {
   fi
 }
 
+setup_host_in_hosts_file 'gusto-dev.com'
+setup_host_in_hosts_file 'manage.gusto-dev.com'
+setup_host_in_hosts_file 'app.gusto-dev.com'
+setup_host_in_hosts_file 'api.gusto-dev.com'
+setup_host_in_hosts_file 'internal-api.gusto-dev.com'
+setup_host_in_hosts_file 'hippo.gusto-dev.com'
 
 
 brew cask list | egrep 'java$' >/dev/null || brew cask install java

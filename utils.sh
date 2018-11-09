@@ -28,7 +28,6 @@ validation_prompt() {
 }
 
 cask_install() {
-  echo "dafuk?"
 	if ! brew cask info "$1" | grep -i "not installed" > /dev/null; then
 #	if [ $? -ne 0 ]; then
 		info "$1 is already installed"

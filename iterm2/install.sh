@@ -33,7 +33,7 @@ open_confirm_close_iterm() {
 brew cask install iterm2
 success "Installed iterm2"
 
-rm ~/Library/Preferences/com.googlecode.iterm2.plist
+rm ~/Library/Preferences/com.googlecode.iterm2.plist || true
 killall cfprefsd
 success "Deleted old config"
 
