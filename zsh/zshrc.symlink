@@ -65,3 +65,14 @@ ggb() {
     git grep -n $1 | while IFS=: read i j k; do git blame -L $j,$j $i | cat; done
 }
 
+
+# tabtab source for serverless package
+# uninstall by removing these lines or running `tabtab uninstall serverless`
+#[[ -f /usr/local/lib/node_modules/serverless/node_modules/tabtab/.completions/serverless.zsh ]] && . /usr/local/lib/node_modules/serverless/node_modules/tabtab/.completions/serverless.zsh
+# tabtab source for sls package
+# uninstall by removing these lines or running `tabtab uninstall sls`
+#[[ -f /usr/local/lib/node_modules/serverless/node_modules/tabtab/.completions/sls.zsh ]] && . /usr/local/lib/node_modules/serverless/node_modules/tabtab/.completions/sls.zsh
+
+export PATH="$HOME/.cargo/bin:$PATH"
+export PATH="/usr/local/share/dotnet:$PATH"
+

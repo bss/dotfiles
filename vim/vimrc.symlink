@@ -25,7 +25,7 @@ map <C-k><C-b> :NERDTreeToggle<CR>
 let g:lightline = {
       \ 'colorscheme': 'solarized',
       \ 'active': {
-      \   'left': [ [ 'mode', 'paste' ], [ 'fugitive', 'filename' ], ['ctrlpmark'] ],
+      \   'left': [ [ 'mode', 'paste' ], [ 'fugitive', 'filename' ] ],
       \   'right': [ [ 'syntastic', 'lineinfo' ], ['percent'], [ 'fileformat', 'fileencoding', 'filetype' ] ]
       \ },
       \ 'component_function': {
@@ -35,7 +35,6 @@ let g:lightline = {
       \   'filetype': 'MyFiletype',
       \   'fileencoding': 'MyFileencoding',
       \   'mode': 'MyMode',
-      \   'ctrlpmark': 'CtrlPMark',
       \ },
       \ 'component_expand': {
       \   'syntastic': 'SyntasticStatuslineFlag',
@@ -106,33 +105,6 @@ function! MyMode()
         \ winwidth(0) > 60 ? lightline#mode() : ''
 endfunction
 
-function! CtrlPMark()
-  if expand('%:t') =~ 'ControlP'
-    call lightline#link('iR'[g:lightline.ctrlp_regex])
-    return lightline#concatenate([g:lightline.ctrlp_prev, g:lightline.ctrlp_item
-          \ , g:lightline.ctrlp_next], 0)
-  else
-    return ''
-  endif
-endfunction
-
-let g:ctrlp_status_func = {
-  \ 'main': 'CtrlPStatusFunc_1',
-  \ 'prog': 'CtrlPStatusFunc_2',
-  \ }
-
-function! CtrlPStatusFunc_1(focus, byfname, regex, prev, item, next, marked)
-  let g:lightline.ctrlp_regex = a:regex
-  let g:lightline.ctrlp_prev = a:prev
-  let g:lightline.ctrlp_item = a:item
-  let g:lightline.ctrlp_next = a:next
-  return lightline#statusline(0)
-endfunction
-
-function! CtrlPStatusFunc_2(str)
-  return lightline#statusline(0)
-endfunction
-
 let g:tagbar_status_func = 'TagbarStatusFunc'
 
 function! TagbarStatusFunc(current, sort, fname, ...) abort
@@ -153,42 +125,28 @@ let g:unite_force_overwrite_statusline = 0
 let g:vimfiler_force_overwrite_statusline = 0
 let g:vimshell_force_overwrite_statusline = 0
 
-" Use git to list files in CtrlP when in git
-let g:ctrlp_user_command = ['.git', 'cd %s && git ls-files']
-
-if !has("gui_macvim")
-  " Use Ctrl-cmatcher
-  let g:ctrlp_match_func = {'match' : 'matcher#cmatch' }
+if has("gui_macvim")
+else
+  " Map Ctrl+/ to toggle comments
+  nmap <C-_> gc
+  vmap <C-_> gc
 end
 
+" Setup FZF
+let g:fzf_action = {
+      \ 'ctrl-s': 'split',
+      \ 'ctrl-v': 'vsplit'
+      \ }
+nnoremap <c-p> :FZF<cr>
+augroup fzf
+  autocmd!
+  autocmd! FileType fzf
+  autocmd  FileType fzf set laststatus=0 noshowmode noruler
+    \| autocmd BufLeave <buffer> set laststatus=2 showmode ruler
+augroup END
 
-" Expand some Gusto terms:
-"   esf -> employee_state_field
-"   csf -> company_state_field
-"   sfr -> state_filing_requirement
-let g:ctrlp_abbrev = {
-    \ 'gmode': 'i',
-    \ 'abbrevs': [
-      \ {
-        \ 'pattern': '^esf',
-        \ 'expanded': 'employee_state_field',
-        \ 'mode': 'pfrz',
-      \ },
-      \ {
-        \ 'pattern': '^csf',
-        \ 'expanded': 'company_state_field',
-        \ 'mode': 'pfrz',
-      \ },
-      \ {
-        \ 'pattern': '^sfr',
-        \ 'expanded': 'state_filing_requirement',
-        \ 'mode': 'pfrz',
-      \ },
-      \ ]
-    \ }
-
-" Use mixed mode by default for CtrlP
-let g:ctrlp_cmd = 'CtrlPMixed'
+command! -bang -nargs=? -complete=dir FZF
+  \ call fzf#vim#files(<q-args>, {'source': 'ag --hidden --ignore .git -g ""'}, <bang>0)
 
 " Other
 " --------------------------------
@@ -211,15 +169,15 @@ set mouse=a
 set clipboard=unnamed
 
 " Setup indentation
-set expandtab  
-set tabstop=2  
-set shiftwidth=2  
-set autoindent  
-set smartindent  
+set expandtab
+set tabstop=2
+set shiftwidth=2
+set autoindent
+set smartindent
 set nowrap
 
 " Allow backspace over any character in insert mode
-set backspace=indent,eol,start 
+set backspace=indent,eol,start
 
 "  Setup fonts/colors
 set guifont=DejaVu\ Sans\ Mono\ for\ Powerline:h13
@@ -234,6 +192,26 @@ set termencoding=utf-8
 set splitbelow
 set splitright
 
+" Set .swp .swo dirs to the system temp dirs
+set backupdir=$TMPDIR//
+set directory=$TMPDIR//
+
+" Nicer ruby indent style
+let g:ruby_indent_assignment_style = 'variable'
+
 " Map // to search for selected text
 vnoremap // y/\V<C-r>=escape(@",'/\')<CR><CR>
+
+" Remove trailing whitespace on save
+autocmd BufWritePre * :%s/\s\+$//e
+
+"""""""""""""""""""""
+" Break the habits!
+""""""""""""""""""""
+
+" Disable arrow keys
+noremap <Up> <NOP>
+noremap <Down> <NOP>
+noremap <Left> <NOP>
+noremap <Right> <NOP>
 
