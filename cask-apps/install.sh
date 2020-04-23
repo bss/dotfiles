@@ -11,7 +11,7 @@ set -e
 
 source "$DOTFILES_ROOT/utils.sh"
 
-# Install a cask if it is not already installed. 
+# Install a cask if it is not already installed.
 # Updates should be done through "brew cask update"
 
 # Browsers
@@ -21,6 +21,7 @@ source "$DOTFILES_ROOT/utils.sh"
 
 # Development & editors
 cask_install "atom"
+cask_install "visual-studio-code"
 #cask_install "sublime-text3"
 #cask_install "sourcetree"
 #cask_install "vagrant"

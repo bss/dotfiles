@@ -9,4 +9,5 @@ cd "$(dirname $0)"/..
 ./homebrew/install.sh
 
 # find the installers and run them iteratively
-find . -name install.sh | sort | while read installer ; do source "${installer}" ; done
+#find . -name install.sh | sort | while read installer ; do source "${installer}" ; done
+find . -name install.sh | sort | while read installer ; do echo "${installer}"; /usr/bin/env bash "${installer}" ; done

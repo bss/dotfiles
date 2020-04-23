@@ -16,7 +16,7 @@ fi
 brew install grc coreutils spark gcc git
 
 # Install homebrew cask for ui packages
-brew tap caskroom/cask
+brew tap homebrew/cask-cask
 
 
 exit 0

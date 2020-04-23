@@ -24,8 +24,9 @@ setup_host_in_hosts_file 'hippo.gusto-dev.com'
 
 
 brew cask list | egrep 'java$' >/dev/null || brew cask install java
-brew cask install homebrew/cask-versions/java8
-brew install imagemagick@6 ghostscript graphicsmagick poppler ghostscript tesseract lbzip2 elasticsearch mysql@5.7 redis nvm
+#brew cask install homebrew/cask-versions/java8
+#brew install imagemagick@6 ghostscript graphicsmagick poppler ghostscript tesseract lbzip2 elasticsearch mysql redis nvm
+brew install imagemagick@6 ghostscript graphicsmagick poppler ghostscript tesseract lbzip2 mysql redis nvm
 brew cask install phantomjs
 success 'Installing dependencies'
 
@@ -36,8 +37,8 @@ success 'Installing pdftk'
 brew link imagemagick@6 --force # rmagick gem only works with 6
 success 'Linking correct version of imagemagick'
 
-brew link mysql@5.7 --force # Rails4-compatible mysql2 gem only works with <= 5.7
-success 'Linking correct version of mysql'
+#brew link mysql@5.7 --force # Rails4-compatible mysql2 gem only works with <= 5.7
+#success 'Linking correct version of mysql'
 
 sudo brew services start mysql
 success 'Starting mysql'

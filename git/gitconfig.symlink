@@ -7,7 +7,8 @@
 	name = Bo Stendal Sorensen
 	email = bo@stendal-sorensen.net
 [credential]
-        helper = osxkeychain
+	helper = store
+#        helper = osxkeychain
 [alias]
         co = checkout
         promote = !$ZSH/bin/git-promote
@@ -45,3 +46,9 @@
   trustExitCode = true
   cmd = open -W -a Meld --args --auto-merge \"$LOCAL\" \"$BASE\" \"$REMOTE\" --output=\"$MERGED\"
 
+[url "https://github.com/"]
+	insteadOf = git@github.com:
+[url "https://"]
+	insteadOf = git://
+[credential "https://github.com"]
+	username = bss

@@ -1,4 +1,4 @@
 #!/bin/sh
 
-brew install caskroom/cask/docker
+brew cask install docker
 
