@@ -1,8 +1,8 @@
 execute pathogen#infect()
 
 syntax on
-set background=dark
-colorscheme solarized
+" set background=dark
+" colorscheme solarized
 highlight clear SignColumn
 
 " Wrap gitcommit file types at the appropriate length

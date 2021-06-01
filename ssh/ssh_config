@@ -1,14 +1,11 @@
-UseRoaming no
 User bo
 
 Host *
-     UseKeychain yes
-     AddKeysToAgent yes
-     IdentityFile ~/.ssh/id_rsa
-     Compression yes
-#     CompressionLevel 7
-#     Cipher blowfish
-     ServerAliveInterval 600
-#     ControlMaster auto
-#     ControlPath ~/.ssh/tmp/ssh-%r@%h:%p
+  UseKeychain yes
+  AddKeysToAgent yes
+  ForwardX11 no
+  IdentityFile ~/.ssh/id_rsa
+  Compression yes
+  ServerAliveInterval 600
+  UseRoaming no
 

@@ -8,6 +8,7 @@
 	email = bo@stendal-sorensen.net
 [credential]
 	helper = store
+	helper = /usr/local/share/gcm-core/git-credential-manager-core
 #        helper = osxkeychain
 [alias]
         co = checkout
@@ -23,8 +24,10 @@
         branch = auto
         ui = true
 [core]
-	excludesfile = /Users/bo/.gitignore
+	excludesfile = /Users/bo.sorensen/.gitignore
         editor = vim
+  pager = less -FRXK
+	preloadIndex = true
 [apply]
         whitespace = nowarn
 [difftool]
@@ -46,9 +49,8 @@
   trustExitCode = true
   cmd = open -W -a Meld --args --auto-merge \"$LOCAL\" \"$BASE\" \"$REMOTE\" --output=\"$MERGED\"
 
-[url "https://github.com/"]
-	insteadOf = git@github.com:
-[url "https://"]
-	insteadOf = git://
 [credential "https://github.com"]
 	username = bss
+[pull]
+	ff = only
+
